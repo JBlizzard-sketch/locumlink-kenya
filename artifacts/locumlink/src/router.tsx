@@ -29,6 +29,12 @@ import ClinicBookings from "@/pages/clinic/bookings";
 import ClinicBookingDetail from "@/pages/clinic/bookings/[id]";
 import ClinicAnalytics from "@/pages/clinic/analytics";
 import ClinicProfile from "@/pages/clinic/profile";
+import ClinicLocumsDirectory from "@/pages/clinic/locums";
+
+// Admin Pages
+import AdminDashboard from "@/pages/admin/dashboard";
+import AdminVerification from "@/pages/admin/verification";
+import AdminDisputes from "@/pages/admin/disputes";
 
 import NotFound from "@/pages/not-found";
 
@@ -61,6 +67,12 @@ export default function Router() {
       <Route path="/clinic/bookings/:id">{() => <ProtectedRoute allowedRoles={["clinic_admin", "clinic_hr"]}><Layout><ClinicBookingDetail /></Layout></ProtectedRoute>}</Route>
       <Route path="/clinic/analytics">{() => <ProtectedRoute allowedRoles={["clinic_admin", "clinic_hr"]}><Layout><ClinicAnalytics /></Layout></ProtectedRoute>}</Route>
       <Route path="/clinic/profile">{() => <ProtectedRoute allowedRoles={["clinic_admin", "clinic_hr"]}><Layout><ClinicProfile /></Layout></ProtectedRoute>}</Route>
+      <Route path="/clinic/locums">{() => <ProtectedRoute allowedRoles={["clinic_admin", "clinic_hr"]}><Layout><ClinicLocumsDirectory /></Layout></ProtectedRoute>}</Route>
+
+      {/* Admin Routes */}
+      <Route path="/admin/dashboard">{() => <ProtectedRoute allowedRoles={["platform_admin"]}><Layout><AdminDashboard /></Layout></ProtectedRoute>}</Route>
+      <Route path="/admin/verification">{() => <ProtectedRoute allowedRoles={["platform_admin"]}><Layout><AdminVerification /></Layout></ProtectedRoute>}</Route>
+      <Route path="/admin/disputes">{() => <ProtectedRoute allowedRoles={["platform_admin"]}><Layout><AdminDisputes /></Layout></ProtectedRoute>}</Route>
 
       <Route component={NotFound} />
     </Switch>
