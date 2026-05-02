@@ -575,6 +575,12 @@ export interface LocumAnalytics {
   pendingApplicationsCount?: number;
 }
 
+export type PlatformSummaryRevenueByMonthItem = {
+  month: string;
+  revenue: number;
+  volume: number;
+};
+
 export interface PlatformSummary {
   totalLocums: number;
   verifiedLocums: number;
@@ -586,6 +592,7 @@ export interface PlatformSummary {
   platformRevenue?: number;
   pendingVerifications?: number;
   openDisputes?: number;
+  revenueByMonth?: PlatformSummaryRevenueByMonthItem[];
 }
 
 export type VerificationQueueDataItem = {

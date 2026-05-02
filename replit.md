@@ -45,6 +45,7 @@ Production-grade two-sided marketplace connecting verified locum medical profess
 | 11 | SSE real-time notifications with exponential backoff reconnect |
 | 12 | Smart shift matching UI (5 filters, match score algorithm, recommendation tab) |
 | 13 | GCS-backed document uploads (presigned URL flow), unread notification badge in nav, mark-all-read, admin doc viewer with clickable links |
+| 14 | Full analytics & reporting: real earningsByMonth (6 months), recentActivity feed, clinic payments scoped to clinic, topLocums table, admin revenue trend + shift volume charts, revenueByMonth in PlatformSummary (8 months of data), extended seed to 14 shifts / 8 payments |
 
 ## Architecture Notes
 

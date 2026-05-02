@@ -151,26 +151,38 @@ async function seed() {
   const today = new Date();
 
   // ─── SHIFTS ──────────────────────────────────────────────────────────────────
+  // 6 open + 8 historical completed = 14 shifts for 6-month analytics data
   const existingShifts = await db.select().from(shiftsTable).where(eq(shiftsTable.clinicId, clinic1.id));
   let shiftRows;
-  if (existingShifts.length >= 10) {
+  if (existingShifts.length >= 14) {
     console.log("  ✓ shifts (already seeded — using existing)");
     shiftRows = existingShifts;
   } else {
     shiftRows = await db.insert(shiftsTable).values([
-      // Future open shifts
+      // ── Future / open shifts ─────────────────────────────────────────
       { clinicId: clinic1.id, specialtyId: gpId,    title: "Saturday GP Cover — Westlands",        description: "Busy Saturday outpatient session. 30–40 patients. EPIC EMR in use.", shiftDate: dateStr(addDays(today, 2)),  startTime: "08:00", endTime: "14:00", rate: 12000, positionsAvailable: 1, urgency: "normal",    status: "open", minYearsExperience: 3 },
       { clinicId: clinic1.id, specialtyId: nurseId,  title: "Night Shift Nurse — General Ward",      description: "Night nursing cover for 20-bed general ward. IV line management required.", shiftDate: dateStr(addDays(today, 4)),  startTime: "19:00", endTime: "07:00", rate: 5500,  positionsAvailable: 2, urgency: "urgent",    status: "open", minYearsExperience: 2 },
       { clinicId: clinic1.id, specialtyId: anaesId,  title: "Emergency: Anaesthetist Needed",         description: "Surgical list: 2 laparotomies + 1 C-section. Full anaesthetic workup required.", shiftDate: dateStr(addDays(today, 7)),  startTime: "07:00", endTime: "17:00", rate: 30000, positionsAvailable: 1, urgency: "emergency", status: "open", minYearsExperience: 5, specificRequirements: "Obstetric anaesthesia experience required" },
       { clinicId: clinic2?.id ?? clinic1.id, specialtyId: paedId,   title: "Paediatrics Weekend Clinic",           description: "Saturday paediatric OPD. High volume. Bring your stethoscope!", shiftDate: dateStr(addDays(today, 9)),  startTime: "09:00", endTime: "15:00", rate: 15000, positionsAvailable: 1, urgency: "normal",    status: "open", minYearsExperience: 4 },
       { clinicId: clinic2?.id ?? clinic1.id, specialtyId: icuId,    title: "ICU Nurse — Overnight Cover",          description: "3-bed ICU overnight nursing. Ventilator-competent nurses preferred.", shiftDate: dateStr(addDays(today, 5)),  startTime: "20:00", endTime: "08:00", rate: 8500,  positionsAvailable: 1, urgency: "urgent",    status: "open", minYearsExperience: 3 },
       { clinicId: clinic2?.id ?? clinic1.id, specialtyId: emId,     title: "Emergency Physician — Public Holiday", description: "Emergency cover for the public holiday weekend. Fast-paced environment.", shiftDate: dateStr(addDays(today, 14)), startTime: "08:00", endTime: "20:00", rate: 22000, positionsAvailable: 1, urgency: "normal",    status: "open", minYearsExperience: 5 },
-
-      // Historical completed shifts (for analytics data)
-      { clinicId: clinic1.id, specialtyId: gpId,    title: "GP Cover — March Weekend",     description: "March weekend outpatient cover.", shiftDate: dateStr(subDays(today, 60)), startTime: "08:00", endTime: "14:00", rate: 12000, positionsAvailable: 1, urgency: "normal", status: "completed", minYearsExperience: 3 },
-      { clinicId: clinic1.id, specialtyId: gpId,    title: "GP Cover — February",          description: "February weekend cover.", shiftDate: dateStr(subDays(today, 90)), startTime: "08:00", endTime: "14:00", rate: 11000, positionsAvailable: 1, urgency: "normal", status: "completed", minYearsExperience: 3 },
-      { clinicId: clinic1.id, specialtyId: nurseId,  title: "Night Nurse — January",        description: "January night nursing.", shiftDate: dateStr(subDays(today, 120)), startTime: "19:00", endTime: "07:00", rate: 5000, positionsAvailable: 1, urgency: "normal", status: "completed", minYearsExperience: 2 },
-      { clinicId: clinic2?.id ?? clinic1.id, specialtyId: gpId, title: "GP Cover — April",  description: "April cover.", shiftDate: dateStr(subDays(today, 30)), startTime: "09:00", endTime: "15:00", rate: 13000, positionsAvailable: 1, urgency: "normal", status: "completed", minYearsExperience: 3 },
+      // ── Historical completed shifts — spread across 6 months ─────────
+      // April (30 days ago)
+      { clinicId: clinic1.id, specialtyId: gpId,    title: "GP Cover — April",            description: "April cover.", shiftDate: dateStr(subDays(today, 30)),  startTime: "09:00", endTime: "15:00", rate: 13000, positionsAvailable: 1, urgency: "normal", status: "completed", minYearsExperience: 3 },
+      // March (60 days ago)
+      { clinicId: clinic1.id, specialtyId: gpId,    title: "GP Cover — March Weekend",    description: "March weekend outpatient cover.", shiftDate: dateStr(subDays(today, 60)),  startTime: "08:00", endTime: "14:00", rate: 12000, positionsAvailable: 1, urgency: "normal", status: "completed", minYearsExperience: 3 },
+      // February (90 days ago)
+      { clinicId: clinic1.id, specialtyId: gpId,    title: "GP Cover — February",         description: "February weekend cover.", shiftDate: dateStr(subDays(today, 90)),  startTime: "08:00", endTime: "14:00", rate: 11000, positionsAvailable: 1, urgency: "normal", status: "completed", minYearsExperience: 3 },
+      // January (120 days ago)
+      { clinicId: clinic1.id, specialtyId: nurseId,  title: "Night Nurse — January",       description: "January night nursing.", shiftDate: dateStr(subDays(today, 120)), startTime: "19:00", endTime: "07:00", rate: 5000,  positionsAvailable: 1, urgency: "normal", status: "completed", minYearsExperience: 2 },
+      // December 2025 (150 days ago)
+      { clinicId: clinic1.id, specialtyId: gpId,    title: "GP Cover — December",         description: "December end-of-year cover.", shiftDate: dateStr(subDays(today, 150)), startTime: "08:00", endTime: "14:00", rate: 14000, positionsAvailable: 1, urgency: "normal", status: "completed", minYearsExperience: 3 },
+      // December 2025 second (170 days ago)
+      { clinicId: clinic1.id, specialtyId: paedId,  title: "Paeds Cover — December",      description: "December paediatric cover.", shiftDate: dateStr(subDays(today, 170)), startTime: "09:00", endTime: "15:00", rate: 15000, positionsAvailable: 1, urgency: "normal", status: "completed", minYearsExperience: 4 },
+      // November 2025 (200 days ago)
+      { clinicId: clinic1.id, specialtyId: gpId,    title: "GP Cover — November",         description: "November weekend cover.", shiftDate: dateStr(subDays(today, 200)), startTime: "08:00", endTime: "14:00", rate: 11500, positionsAvailable: 1, urgency: "normal", status: "completed", minYearsExperience: 3 },
+      // November 2025 second (215 days ago)
+      { clinicId: clinic1.id, specialtyId: nurseId, title: "Night Nurse — November",      description: "November overnight nursing.", shiftDate: dateStr(subDays(today, 215)), startTime: "19:00", endTime: "07:00", rate: 4800,  positionsAvailable: 1, urgency: "normal", status: "completed", minYearsExperience: 2 },
     ]).onConflictDoNothing().returning();
     console.log(`  ✓ ${shiftRows.length} shifts`);
   }
@@ -181,86 +193,75 @@ async function seed() {
   }
 
   // ─── HISTORICAL BOOKINGS + PAYMENTS + RATINGS ────────────────────────────────
-  // Shift 7 (index 6) = 60 days ago, completed
-  const histShift1 = shiftRows[6];
-  const histShift2 = shiftRows[7];
-  const histShift3 = shiftRows[8];
-  const histShift4 = shiftRows[9];
+  // indexes: [0-5] = open shifts, [6-13] = historical completed
+  const histShifts = shiftRows.slice(6);   // up to 8 historical shifts
 
-  const [bk1] = await db.insert(bookingsTable).values({
-    shiftId: histShift1.id, locumId: locum1.id,
-    status: "completed",
-    contractSignedByLocumAt: subDays(today, 61), contractSignedByClinicAt: subDays(today, 61),
-    checkedInAt: subDays(today, 60), completedAt: subDays(today, 60),
-  }).onConflictDoNothing().returning();
+  const histBookings: Array<typeof bookingsTable.$inferSelect | undefined> = [];
+  const histData = [
+    // { daysAgo for booking, daysAgo for payment, locum, rate }
+    { bookDays: 31, payDays: 29, locum: locum1, rate: 13000 },   // Apr
+    { bookDays: 61, payDays: 59, locum: locum1, rate: 12000 },   // Mar
+    { bookDays: 91, payDays: 89, locum: locum1, rate: 11000 },   // Feb
+    { bookDays: 121, payDays: 119, locum: locum2, rate: 5000 },  // Jan
+    { bookDays: 151, payDays: 149, locum: locum1, rate: 14000 }, // Dec
+    { bookDays: 171, payDays: 169, locum: locum1, rate: 15000 }, // Dec 2
+    { bookDays: 201, payDays: 199, locum: locum1, rate: 11500 }, // Nov
+    { bookDays: 216, payDays: 214, locum: locum2, rate: 4800 },  // Nov 2
+  ];
 
-  const [bk2] = await db.insert(bookingsTable).values({
-    shiftId: histShift2.id, locumId: locum1.id,
-    status: "completed",
-    contractSignedByLocumAt: subDays(today, 91), contractSignedByClinicAt: subDays(today, 91),
-    checkedInAt: subDays(today, 90), completedAt: subDays(today, 90),
-  }).onConflictDoNothing().returning();
+  for (let i = 0; i < Math.min(histShifts.length, histData.length); i++) {
+    const { bookDays, locum, rate, payDays } = histData[i];
+    if (!locum) { histBookings.push(undefined); continue; }
+    const [bk] = await db.insert(bookingsTable).values({
+      shiftId: histShifts[i].id, locumId: locum.id,
+      status: "completed",
+      contractSignedByLocumAt: subDays(today, bookDays + 1),
+      contractSignedByClinicAt: subDays(today, bookDays + 1),
+      checkedInAt: subDays(today, bookDays),
+      completedAt: subDays(today, bookDays),
+    }).onConflictDoNothing().returning();
+    histBookings.push(bk);
 
-  const [bk3] = await db.insert(bookingsTable).values({
-    shiftId: histShift3.id, locumId: locum2.id,
-    status: "completed",
-    contractSignedByLocumAt: subDays(today, 121), contractSignedByClinicAt: subDays(today, 121),
-    checkedInAt: subDays(today, 120), completedAt: subDays(today, 120),
-  }).onConflictDoNothing().returning();
-
-  const [bk4] = await db.insert(bookingsTable).values({
-    shiftId: histShift4.id, locumId: locum1.id,
-    status: "completed",
-    contractSignedByLocumAt: subDays(today, 31), contractSignedByClinicAt: subDays(today, 31),
-    checkedInAt: subDays(today, 30), completedAt: subDays(today, 30),
-  }).onConflictDoNothing().returning();
+    if (bk) {
+      const platformFee = Math.round(rate * 0.1);
+      const locumPayout = rate - platformFee;
+      await db.insert(paymentsTable).values({
+        bookingId: bk.id,
+        grossAmount: rate, platformFee, locumPayout,
+        status: "completed", paymentMethod: "mpesa",
+        paidAt: subDays(today, payDays),
+      }).onConflictDoNothing();
+    }
+  }
 
   // A current confirmed booking for the demo locum
   const futureShift = shiftRows[0];
-  const [bk5] = await db.insert(bookingsTable).values({
-    shiftId: futureShift.id, locumId: locum1.id,
-    status: "confirmed",
-  }).onConflictDoNothing().returning();
+  await db.insert(bookingsTable).values({
+    shiftId: futureShift.id, locumId: locum1.id, status: "confirmed",
+  }).onConflictDoNothing();
 
   console.log("  ✓ bookings");
-
-  // Payments for completed bookings
-  const bookingPaymentPairs = [
-    { bk: bk1, rate: 12000, date: subDays(today, 59) },
-    { bk: bk2, rate: 11000, date: subDays(today, 89) },
-    { bk: bk3, rate: 5000,  date: subDays(today, 119) },
-    { bk: bk4, rate: 13000, date: subDays(today, 29) },
-  ];
-
-  for (const { bk, rate, date } of bookingPaymentPairs) {
-    if (!bk) continue;
-    const platformFee = Math.round(rate * 0.1);
-    const locumPayout = rate - platformFee;
-    await db.insert(paymentsTable).values({
-      bookingId: bk.id,
-      grossAmount: rate,
-      platformFee,
-      locumPayout,
-      status: "completed",
-      paymentMethod: "mpesa",
-      paidAt: date,
-    }).onConflictDoNothing();
-  }
-
   console.log("  ✓ payments");
 
   // Ratings for completed bookings
-  const ratingPairs = [
-    { bk: bk1, score: 5, comment: "Dr. Wanjiku was exceptional — punctual, thorough, and the patients loved her." },
-    { bk: bk2, score: 5, comment: "Outstanding as always. Highly recommended for any GP cover shifts." },
-    { bk: bk3, score: 4, comment: "Patrick was professional and competent throughout the night shift." },
-    { bk: bk4, score: 5, comment: "Excellent consultation quality and very good patient rapport." },
+  const ratingComments = [
+    "Dr. Wanjiku was exceptional — punctual, thorough, and the patients loved her.",
+    "Outstanding as always. Highly recommended for any GP cover shifts.",
+    "Excellent consultation quality and very good patient rapport.",
+    "Patrick was professional and competent throughout the night shift.",
+    "Great work during a busy December period. Patients were very satisfied.",
+    "Dr. Wanjiku handled a complex paediatric case brilliantly. Will re-book.",
+    "Reliable and efficient. She fitted in with the team immediately.",
+    "Patrick kept the ward running smoothly through the night. Excellent.",
   ];
 
-  for (const { bk, score, comment } of ratingPairs) {
+  for (let i = 0; i < Math.min(histBookings.length, ratingComments.length); i++) {
+    const bk = histBookings[i];
     if (!bk) continue;
     await db.insert(ratingsTable).values({
-      bookingId: bk.id, raterType: "clinic", overallScore: score, comment,
+      bookingId: bk.id, raterType: "clinic",
+      overallScore: i === 3 || i === 7 ? 4 : 5,
+      comment: ratingComments[i],
     }).onConflictDoNothing();
   }
 

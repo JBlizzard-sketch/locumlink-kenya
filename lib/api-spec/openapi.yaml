@@ -2509,6 +2509,21 @@ components:
           type: integer
         openDisputes:
           type: integer
+        revenueByMonth:
+          type: array
+          items:
+            type: object
+            properties:
+              month:
+                type: string
+              revenue:
+                type: integer
+              volume:
+                type: integer
+            required:
+              - month
+              - revenue
+              - volume
       required:
         - totalLocums
         - verifiedLocums

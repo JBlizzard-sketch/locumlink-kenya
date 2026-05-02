@@ -2257,6 +2257,15 @@ export const GetPlatformSummaryResponse = zod.object({
   platformRevenue: zod.number().optional(),
   pendingVerifications: zod.number().optional(),
   openDisputes: zod.number().optional(),
+  revenueByMonth: zod
+    .array(
+      zod.object({
+        month: zod.string(),
+        revenue: zod.number(),
+        volume: zod.number(),
+      }),
+    )
+    .optional(),
 });
 
 /**
