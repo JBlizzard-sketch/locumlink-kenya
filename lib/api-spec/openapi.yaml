@@ -1100,6 +1100,25 @@ paths:
                 $ref: "#/components/schemas/Booking"
 
   # MESSAGES
+  /messages/conversations:
+    get:
+      operationId: listMessageConversations
+      tags: [bookings]
+      summary: List all booking conversations for the current user
+      responses:
+        "200":
+          description: Conversation list
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/ConversationSummary"
+
   /bookings/{id}/messages:
     get:
       operationId: listBookingMessages
@@ -3310,3 +3329,42 @@ components:
         - contactName
         - contactEmail
         - contactPhone
+
+    ConversationSummary:
+      type: object
+      required: [bookingId, bookingStatus, locumName, unreadCount, latestMessage]
+      properties:
+        bookingId:
+          type: integer
+        bookingStatus:
+          type: string
+        locumName:
+          type: string
+        shift:
+          type: object
+          nullable: true
+          properties:
+            id:
+              type: integer
+            title:
+              type: string
+            shiftDate:
+              type: string
+            clinicName:
+              type: string
+        latestMessage:
+          type: object
+          required: [body, createdAt, senderName, senderRole, isFromMe]
+          properties:
+            body:
+              type: string
+            createdAt:
+              type: string
+            senderName:
+              type: string
+            senderRole:
+              type: string
+            isFromMe:
+              type: boolean
+        unreadCount:
+          type: integer

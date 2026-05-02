@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { z } from "zod";
-import { db, messagesTable, bookingsTable, usersTable, locumsTable, clinicsTable, shiftsTable } from "@workspace/db";
-import { eq, and, ne } from "drizzle-orm";
+import { db, messagesTable, bookingsTable, usersTable, locumsTable, clinicsTable, shiftsTable, specialtiesTable } from "@workspace/db";
+import { eq, and, ne, desc, count, sql } from "drizzle-orm";
 import { authenticate } from "../middlewares/auth";
 
 const router = Router();
@@ -173,6 +173,130 @@ router.post("/bookings/:id/messages/read", authenticate, async (req, res) => {
     .returning({ id: messagesTable.id });
 
   res.json({ updated: result.length });
+});
+
+// GET /messages/conversations — all booking threads for the current user
+router.get("/messages/conversations", authenticate, async (req, res) => {
+  const userId = (req as any).user.userId;
+
+  // Resolve the user's locum or clinic id
+  const [locum] = await db.select({ id: locumsTable.id })
+    .from(locumsTable).where(eq(locumsTable.userId, userId)).limit(1);
+  const [clinic] = await db.select({ id: clinicsTable.id })
+    .from(clinicsTable).where(eq(clinicsTable.userId, userId)).limit(1);
+
+  if (!locum && !clinic) {
+    res.json({ data: [] });
+    return;
+  }
+
+  // Get all bookings this user participates in
+  const bookingRows = await db
+    .select({
+      bookingId: bookingsTable.id,
+      bookingStatus: bookingsTable.status,
+      locumId: bookingsTable.locumId,
+      shiftId: bookingsTable.shiftId,
+    })
+    .from(bookingsTable)
+    .innerJoin(shiftsTable, eq(shiftsTable.id, bookingsTable.shiftId))
+    .where(
+      locum
+        ? eq(bookingsTable.locumId, locum.id)
+        : eq(shiftsTable.clinicId, clinic!.id)
+    );
+
+  if (bookingRows.length === 0) {
+    res.json({ data: [] });
+    return;
+  }
+
+  const bookingIds = bookingRows.map(b => b.bookingId);
+
+  // For each booking, get the latest message and unread count
+  const results = await Promise.all(
+    bookingIds.map(async (bookingId) => {
+      const msgs = await db
+        .select({
+          id: messagesTable.id,
+          senderId: messagesTable.senderId,
+          body: messagesTable.body,
+          isRead: messagesTable.isRead,
+          createdAt: messagesTable.createdAt,
+          senderRole: usersTable.role,
+        })
+        .from(messagesTable)
+        .innerJoin(usersTable, eq(usersTable.id, messagesTable.senderId))
+        .where(eq(messagesTable.bookingId, bookingId))
+        .orderBy(desc(messagesTable.createdAt))
+        .limit(20);
+
+      return { bookingId, msgs };
+    })
+  );
+
+  // Filter to bookings that have at least one message
+  const withMessages = results.filter(r => r.msgs.length > 0);
+
+  if (withMessages.length === 0) {
+    res.json({ data: [] });
+    return;
+  }
+
+  // Enrich with shift + participant names
+  const conversations = await Promise.all(
+    withMessages.map(async ({ bookingId, msgs }) => {
+      const booking = bookingRows.find(b => b.bookingId === bookingId)!;
+      const latest = msgs[0];
+      const unreadCount = msgs.filter(m => !m.isRead && m.senderId !== userId).length;
+
+      // Shift
+      const [shift] = await db
+        .select({ id: shiftsTable.id, title: shiftsTable.title, shiftDate: shiftsTable.shiftDate, clinicId: shiftsTable.clinicId, specialtyId: shiftsTable.specialtyId })
+        .from(shiftsTable).where(eq(shiftsTable.id, booking.shiftId)).limit(1);
+
+      // Clinic name
+      const [cl] = shift
+        ? await db.select({ name: clinicsTable.name }).from(clinicsTable).where(eq(clinicsTable.id, shift.clinicId)).limit(1)
+        : [null];
+
+      // Locum name
+      const [lo] = await db
+        .select({ firstName: locumsTable.firstName, lastName: locumsTable.lastName })
+        .from(locumsTable).where(eq(locumsTable.id, booking.locumId)).limit(1);
+
+      // Latest message sender name
+      const senderName = await getSenderName(latest.senderId);
+
+      return {
+        bookingId,
+        bookingStatus: booking.bookingStatus,
+        shift: shift ? {
+          id: shift.id,
+          title: shift.title,
+          shiftDate: shift.shiftDate,
+          clinicName: cl?.name ?? "Unknown Clinic",
+        } : null,
+        locumName: lo ? `${lo.firstName} ${lo.lastName}`.trim() : "Unknown Locum",
+        latestMessage: {
+          body: latest.body,
+          createdAt: latest.createdAt,
+          senderName,
+          senderRole: latest.senderRole,
+          isFromMe: latest.senderId === userId,
+        },
+        unreadCount,
+      };
+    })
+  );
+
+  // Sort by latest message desc
+  conversations.sort((a, b) =>
+    new Date(b.latestMessage.createdAt as any).getTime() -
+    new Date(a.latestMessage.createdAt as any).getTime()
+  );
+
+  res.json({ data: conversations });
 });
 
 export default router;

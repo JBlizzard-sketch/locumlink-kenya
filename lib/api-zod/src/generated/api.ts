@@ -2229,6 +2229,35 @@ export const SignContractResponse = zod.object({
 });
 
 /**
+ * @summary List all booking conversations for the current user
+ */
+export const ListMessageConversationsResponse = zod.object({
+  data: zod.array(
+    zod.object({
+      bookingId: zod.number(),
+      bookingStatus: zod.string(),
+      locumName: zod.string(),
+      shift: zod
+        .object({
+          id: zod.number().optional(),
+          title: zod.string().optional(),
+          shiftDate: zod.string().optional(),
+          clinicName: zod.string().optional(),
+        })
+        .nullish(),
+      latestMessage: zod.object({
+        body: zod.string(),
+        createdAt: zod.string(),
+        senderName: zod.string(),
+        senderRole: zod.string(),
+        isFromMe: zod.boolean(),
+      }),
+      unreadCount: zod.number(),
+    }),
+  ),
+});
+
+/**
  * @summary List messages for a booking
  */
 export const ListBookingMessagesParams = zod.object({

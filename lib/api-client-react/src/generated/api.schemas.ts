@@ -812,6 +812,30 @@ export interface ClinicOnboardBody {
   bio?: string;
 }
 
+export type ConversationSummaryShift = {
+  id?: number;
+  title?: string;
+  shiftDate?: string;
+  clinicName?: string;
+} | null;
+
+export type ConversationSummaryLatestMessage = {
+  body: string;
+  createdAt: string;
+  senderName: string;
+  senderRole: string;
+  isFromMe: boolean;
+};
+
+export interface ConversationSummary {
+  bookingId: number;
+  bookingStatus: string;
+  locumName: string;
+  shift?: ConversationSummaryShift;
+  latestMessage: ConversationSummaryLatestMessage;
+  unreadCount: number;
+}
+
 export type ListClinicsParams = {
   subCounty?: string;
   facilityType?: string;
@@ -867,6 +891,10 @@ export type ListBookingsParams = {
   status?: string;
   page?: number;
   limit?: number;
+};
+
+export type ListMessageConversations200 = {
+  data: ConversationSummary[];
 };
 
 export type ListBookingMessages200 = {

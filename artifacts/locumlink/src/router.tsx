@@ -11,6 +11,7 @@ import ForgotPassword from "@/pages/auth/forgot-password";
 import ResetPassword from "@/pages/auth/reset-password";
 
 // Locum Pages
+import LocumMessages from "@/pages/locum/messages";
 import LocumDashboard from "@/pages/locum/dashboard";
 import LocumShifts from "@/pages/locum/shifts";
 import LocumShiftDetail from "@/pages/locum/shifts/[id]";
@@ -28,6 +29,7 @@ import LocumMatchedShifts from "@/pages/locum/matched-shifts";
 import ClinicMatchedLocums from "@/pages/clinic/matched-locums";
 
 // Clinic Pages
+import ClinicMessages from "@/pages/clinic/messages";
 import ClinicApplications from "@/pages/clinic/applications";
 import ClinicLocumProfile from "@/pages/clinic/locums/[id]";
 import ClinicDashboard from "@/pages/clinic/dashboard";
@@ -80,6 +82,7 @@ export default function Router() {
       <Route path="/locum/documents">{() => <ProtectedRoute allowedRoles={["locum"]}><Layout><LocumDocuments /></Layout></ProtectedRoute>}</Route>
       <Route path="/locum/bookings/:id/contract">{() => <ProtectedRoute allowedRoles={["locum"]}><Layout><LocumContract /></Layout></ProtectedRoute>}</Route>
       <Route path="/locum/matched-shifts">{() => <ProtectedRoute allowedRoles={["locum"]}><Layout><LocumMatchedShifts /></Layout></ProtectedRoute>}</Route>
+      <Route path="/locum/messages">{() => <ProtectedRoute allowedRoles={["locum"]}><Layout><LocumMessages /></Layout></ProtectedRoute>}</Route>
 
       {/* Clinic Routes */}
       <Route path="/clinic/dashboard">{() => <ProtectedRoute allowedRoles={["clinic_admin", "clinic_hr"]}><Layout><ClinicDashboard /></Layout></ProtectedRoute>}</Route>
@@ -96,6 +99,7 @@ export default function Router() {
       <Route path="/clinic/applications">{() => <ProtectedRoute allowedRoles={["clinic_admin", "clinic_hr"]}><Layout><ClinicApplications /></Layout></ProtectedRoute>}</Route>
       <Route path="/clinic/locums/:id">{() => <ProtectedRoute allowedRoles={["clinic_admin", "clinic_hr"]}><Layout><ClinicLocumProfile /></Layout></ProtectedRoute>}</Route>
       <Route path="/clinic/templates">{() => <ProtectedRoute allowedRoles={["clinic_admin", "clinic_hr"]}><Layout><ClinicTemplates /></Layout></ProtectedRoute>}</Route>
+      <Route path="/clinic/messages">{() => <ProtectedRoute allowedRoles={["clinic_admin", "clinic_hr"]}><Layout><ClinicMessages /></Layout></ProtectedRoute>}</Route>
 
       {/* Admin Routes */}
       <Route path="/admin/dashboard">{() => <ProtectedRoute allowedRoles={["platform_admin"]}><Layout><AdminDashboard /></Layout></ProtectedRoute>}</Route>

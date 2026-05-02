@@ -56,6 +56,7 @@ import type {
   ListBookingsParams,
   ListClinicsParams,
   ListLocumsParams,
+  ListMessageConversations200,
   ListMyClinicApplicationsParams,
   ListNotificationsParams,
   ListPaymentsParams,
@@ -4326,6 +4327,85 @@ export const useSignContract = <
 > => {
   return useMutation(getSignContractMutationOptions(options));
 };
+
+/**
+ * @summary List all booking conversations for the current user
+ */
+export const getListMessageConversationsUrl = () => {
+  return `/api/messages/conversations`;
+};
+
+export const listMessageConversations = async (
+  options?: RequestInit,
+): Promise<ListMessageConversations200> => {
+  return customFetch<ListMessageConversations200>(
+    getListMessageConversationsUrl(),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getListMessageConversationsQueryKey = () => {
+  return [`/api/messages/conversations`] as const;
+};
+
+export const getListMessageConversationsQueryOptions = <
+  TData = Awaited<ReturnType<typeof listMessageConversations>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof listMessageConversations>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getListMessageConversationsQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof listMessageConversations>>
+  > = ({ signal }) => listMessageConversations({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof listMessageConversations>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListMessageConversationsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listMessageConversations>>
+>;
+export type ListMessageConversationsQueryError = ErrorType<unknown>;
+
+/**
+ * @summary List all booking conversations for the current user
+ */
+
+export function useListMessageConversations<
+  TData = Awaited<ReturnType<typeof listMessageConversations>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof listMessageConversations>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListMessageConversationsQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
 
 /**
  * @summary List messages for a booking

@@ -15,13 +15,14 @@ import {
   FileText,
   Star,
   LayoutTemplate,
+  MessageSquare,
   Menu,
   X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import { useListNotifications, getListNotificationsQueryKey } from "@workspace/api-client-react";
+import { useListNotifications, useListMessageConversations, getListNotificationsQueryKey, getListMessageConversationsQueryKey } from "@workspace/api-client-react";
 
 type NavItem = {
   name: string;
@@ -42,11 +43,17 @@ export function Layout({ children }: { children: React.ReactNode }) {
   });
   const unreadCount = notifData?.data?.filter(n => n.status !== "read").length ?? 0;
 
+  const { data: convData } = useListMessageConversations({
+    query: { enabled: isLocum || isClinic, refetchInterval: 20_000, queryKey: getListMessageConversationsQueryKey() },
+  });
+  const unreadMsgCount = (convData?.data ?? []).reduce((sum, c) => sum + (c.unreadCount ?? 0), 0);
+
   const locumNav: NavItem[] = [
     { name: "Dashboard", href: "/locum/dashboard", icon: LayoutDashboard },
     { name: "Find Shifts", href: "/locum/shifts", icon: BriefcaseMedical },
     { name: "My Applications", href: "/locum/applications", icon: ActivitySquare },
     { name: "My Bookings", href: "/locum/bookings", icon: CalendarDays },
+    { name: "Messages", href: "/locum/messages", icon: MessageSquare, badge: unreadMsgCount > 0 ? unreadMsgCount : undefined },
     { name: "Earnings", href: "/locum/earnings", icon: Wallet },
     { name: "Documents", href: "/locum/documents", icon: FileText },
     { name: "Notifications", href: "/locum/notifications", icon: Bell, badge: unreadCount > 0 ? unreadCount : undefined },
@@ -59,6 +66,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
     { name: "Manage Shifts", href: "/clinic/shifts", icon: BriefcaseMedical },
     { name: "Applications", href: "/clinic/applications", icon: ActivitySquare },
     { name: "Active Bookings", href: "/clinic/bookings", icon: CalendarDays },
+    { name: "Messages", href: "/clinic/messages", icon: MessageSquare, badge: unreadMsgCount > 0 ? unreadMsgCount : undefined },
     { name: "Locum Directory", href: "/clinic/locums", icon: Users },
     { name: "Templates", href: "/clinic/templates", icon: LayoutTemplate },
     { name: "Analytics", href: "/clinic/analytics", icon: FileText },
