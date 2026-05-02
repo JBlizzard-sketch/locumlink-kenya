@@ -2024,6 +2024,52 @@ export const SignContractResponse = zod.object({
 });
 
 /**
+ * @summary List messages for a booking
+ */
+export const ListBookingMessagesParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const ListBookingMessagesResponse = zod.object({
+  data: zod.array(
+    zod.object({
+      id: zod.number(),
+      bookingId: zod.number(),
+      senderId: zod.number(),
+      senderName: zod.string(),
+      senderRole: zod.string(),
+      body: zod.string(),
+      isRead: zod.boolean(),
+      createdAt: zod.coerce.date(),
+    }),
+  ),
+});
+
+/**
+ * @summary Send a message in a booking thread
+ */
+export const SendBookingMessageParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const sendBookingMessageBodyBodyMax = 2000;
+
+export const SendBookingMessageBody = zod.object({
+  body: zod.string().min(1).max(sendBookingMessageBodyBodyMax),
+});
+
+/**
+ * @summary Mark all messages in a booking as read
+ */
+export const MarkMessagesReadParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const MarkMessagesReadResponse = zod.object({
+  updated: zod.number().optional(),
+});
+
+/**
  * @summary List payment history for the current user
  */
 export const listPaymentsQueryPageDefault = 1;

@@ -9,3 +9,4 @@ export * from "./ratings";
 export * from "./notifications";
 export * from "./audit";
 export * from "./shift-templates";
+export * from "./messages";

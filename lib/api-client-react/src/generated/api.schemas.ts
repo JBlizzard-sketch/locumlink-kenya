@@ -665,6 +665,25 @@ export interface CreateShiftTemplateBody {
   minYearsExperience?: number;
 }
 
+export interface BookingMessage {
+  id: number;
+  bookingId: number;
+  senderId: number;
+  senderName: string;
+  senderRole: string;
+  body: string;
+  isRead: boolean;
+  createdAt: string;
+}
+
+export interface SendMessageBody {
+  /**
+   * @minLength 1
+   * @maxLength 2000
+   */
+  body: string;
+}
+
 export type VerifyEntityBodyStatus =
   (typeof VerifyEntityBodyStatus)[keyof typeof VerifyEntityBodyStatus];
 
@@ -733,6 +752,14 @@ export type ListBookingsParams = {
   status?: string;
   page?: number;
   limit?: number;
+};
+
+export type ListBookingMessages200 = {
+  data: BookingMessage[];
+};
+
+export type MarkMessagesRead200 = {
+  updated?: number;
 };
 
 export type ListPaymentsParams = {

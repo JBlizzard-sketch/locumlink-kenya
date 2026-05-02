@@ -25,6 +25,7 @@ import type {
   Booking,
   BookingDetail,
   BookingList,
+  BookingMessage,
   Clinic,
   ClinicAnalytics,
   ClinicList,
@@ -43,6 +44,7 @@ import type {
   GetLocumAvailabilityParams,
   GetVerificationQueueParams,
   HealthStatus,
+  ListBookingMessages200,
   ListBookingsParams,
   ListClinicsParams,
   ListLocumsParams,
@@ -54,6 +56,7 @@ import type {
   LocumAnalytics,
   LocumList,
   LoginBody,
+  MarkMessagesRead200,
   MessageResponse,
   NotificationList,
   NotificationPreferences,
@@ -65,6 +68,7 @@ import type {
   RatingList,
   RegisterBody,
   ResolveDisputeBody,
+  SendMessageBody,
   SetAvailabilityBody,
   Shift,
   ShiftDetail,
@@ -3721,6 +3725,264 @@ export const useSignContract = <
   TContext
 > => {
   return useMutation(getSignContractMutationOptions(options));
+};
+
+/**
+ * @summary List messages for a booking
+ */
+export const getListBookingMessagesUrl = (id: number) => {
+  return `/api/bookings/${id}/messages`;
+};
+
+export const listBookingMessages = async (
+  id: number,
+  options?: RequestInit,
+): Promise<ListBookingMessages200> => {
+  return customFetch<ListBookingMessages200>(getListBookingMessagesUrl(id), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getListBookingMessagesQueryKey = (id: number) => {
+  return [`/api/bookings/${id}/messages`] as const;
+};
+
+export const getListBookingMessagesQueryOptions = <
+  TData = Awaited<ReturnType<typeof listBookingMessages>>,
+  TError = ErrorType<unknown>,
+>(
+  id: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listBookingMessages>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getListBookingMessagesQueryKey(id);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof listBookingMessages>>
+  > = ({ signal }) => listBookingMessages(id, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!id,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof listBookingMessages>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListBookingMessagesQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listBookingMessages>>
+>;
+export type ListBookingMessagesQueryError = ErrorType<unknown>;
+
+/**
+ * @summary List messages for a booking
+ */
+
+export function useListBookingMessages<
+  TData = Awaited<ReturnType<typeof listBookingMessages>>,
+  TError = ErrorType<unknown>,
+>(
+  id: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listBookingMessages>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListBookingMessagesQueryOptions(id, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Send a message in a booking thread
+ */
+export const getSendBookingMessageUrl = (id: number) => {
+  return `/api/bookings/${id}/messages`;
+};
+
+export const sendBookingMessage = async (
+  id: number,
+  sendMessageBody: SendMessageBody,
+  options?: RequestInit,
+): Promise<BookingMessage> => {
+  return customFetch<BookingMessage>(getSendBookingMessageUrl(id), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(sendMessageBody),
+  });
+};
+
+export const getSendBookingMessageMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof sendBookingMessage>>,
+    TError,
+    { id: number; data: BodyType<SendMessageBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof sendBookingMessage>>,
+  TError,
+  { id: number; data: BodyType<SendMessageBody> },
+  TContext
+> => {
+  const mutationKey = ["sendBookingMessage"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof sendBookingMessage>>,
+    { id: number; data: BodyType<SendMessageBody> }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return sendBookingMessage(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type SendBookingMessageMutationResult = NonNullable<
+  Awaited<ReturnType<typeof sendBookingMessage>>
+>;
+export type SendBookingMessageMutationBody = BodyType<SendMessageBody>;
+export type SendBookingMessageMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Send a message in a booking thread
+ */
+export const useSendBookingMessage = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof sendBookingMessage>>,
+    TError,
+    { id: number; data: BodyType<SendMessageBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof sendBookingMessage>>,
+  TError,
+  { id: number; data: BodyType<SendMessageBody> },
+  TContext
+> => {
+  return useMutation(getSendBookingMessageMutationOptions(options));
+};
+
+/**
+ * @summary Mark all messages in a booking as read
+ */
+export const getMarkMessagesReadUrl = (id: number) => {
+  return `/api/bookings/${id}/messages/read`;
+};
+
+export const markMessagesRead = async (
+  id: number,
+  options?: RequestInit,
+): Promise<MarkMessagesRead200> => {
+  return customFetch<MarkMessagesRead200>(getMarkMessagesReadUrl(id), {
+    ...options,
+    method: "POST",
+  });
+};
+
+export const getMarkMessagesReadMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof markMessagesRead>>,
+    TError,
+    { id: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof markMessagesRead>>,
+  TError,
+  { id: number },
+  TContext
+> => {
+  const mutationKey = ["markMessagesRead"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof markMessagesRead>>,
+    { id: number }
+  > = (props) => {
+    const { id } = props ?? {};
+
+    return markMessagesRead(id, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type MarkMessagesReadMutationResult = NonNullable<
+  Awaited<ReturnType<typeof markMessagesRead>>
+>;
+
+export type MarkMessagesReadMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Mark all messages in a booking as read
+ */
+export const useMarkMessagesRead = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof markMessagesRead>>,
+    TError,
+    { id: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof markMessagesRead>>,
+  TError,
+  { id: number },
+  TContext
+> => {
+  return useMutation(getMarkMessagesReadMutationOptions(options));
 };
 
 /**

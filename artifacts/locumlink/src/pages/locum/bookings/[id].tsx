@@ -12,6 +12,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { BookingChat } from "@/components/booking-chat";
 
 function StarRating({ value, onChange }: { value: number; onChange: (v: number) => void }) {
   const [hovered, setHovered] = useState(0);
@@ -182,6 +183,8 @@ export default function LocumBookingDetail() {
               </CardContent>
             </Card>
           )}
+
+          <BookingChat bookingId={bookingId} />
         </div>
 
         {/* Action Sidebar */}

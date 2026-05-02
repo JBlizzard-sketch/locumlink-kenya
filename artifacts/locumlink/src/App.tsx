@@ -2,7 +2,7 @@ import { Router as WouterRouter } from "wouter";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { AuthProvider } from "@/hooks/use-auth";
+import { AuthProvider } from "@/components/auth-provider";
 import Router from "@/router";
 import { SseWatcher } from "@/components/sse-watcher";
 import { toast } from "@/hooks/use-toast";

@@ -8,6 +8,10 @@ import { logger } from "./lib/logger";
 
 const app: Express = express();
 
+// Trust the Replit reverse proxy so rate limiting reads the real client IP
+// from X-Forwarded-For rather than the proxy's internal address
+app.set("trust proxy", 1);
+
 // Security headers
 app.use(helmet({
   crossOriginResourcePolicy: { policy: "cross-origin" },
