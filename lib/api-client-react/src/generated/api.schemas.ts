@@ -738,6 +738,20 @@ export interface VerifyEntityBody {
   notes?: string;
 }
 
+export interface ForgotPasswordBody {
+  email: string;
+}
+
+export interface ForgotPasswordResponse {
+  message: string;
+  resetToken?: string;
+}
+
+export interface ResetPasswordBody {
+  token: string;
+  newPassword: string;
+}
+
 export type LocumOnboardBodyRegistrationBody =
   (typeof LocumOnboardBodyRegistrationBody)[keyof typeof LocumOnboardBodyRegistrationBody];
 

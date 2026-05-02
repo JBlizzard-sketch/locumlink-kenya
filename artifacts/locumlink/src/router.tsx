@@ -7,6 +7,8 @@ import Landing from "@/pages/public/landing";
 import PublicShiftBoard from "@/pages/public/shifts";
 import Login from "@/pages/auth/login";
 import Register from "@/pages/auth/register";
+import ForgotPassword from "@/pages/auth/forgot-password";
+import ResetPassword from "@/pages/auth/reset-password";
 
 // Locum Pages
 import LocumDashboard from "@/pages/locum/dashboard";
@@ -57,6 +59,8 @@ export default function Router() {
       <Route path="/shifts" component={PublicShiftBoard} />
       <Route path="/login" component={Login} />
       <Route path="/register" component={Register} />
+      <Route path="/forgot-password" component={ForgotPassword} />
+      <Route path="/reset-password" component={ResetPassword} />
       <Route path="/onboarding" component={Onboarding} />
 
       {/* Locum Routes */}

@@ -19,12 +19,44 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const { toast } = useToast();
   const [, setLocation] = useLocation();
 
+  const roleHome: Record<string, string> = {
+    locum: "/locum/dashboard",
+    clinic_admin: "/clinic/dashboard",
+    clinic_hr: "/clinic/dashboard",
+    clinic_scheduler: "/clinic/dashboard",
+    platform_admin: "/admin/dashboard",
+  };
+
+  async function checkProfileComplete(role: string, token: string): Promise<boolean> {
+    const base = import.meta.env.BASE_URL?.replace(/\/$/, "") ?? "";
+    if (role === "locum") {
+      const res = await fetch(`${base}/api/locums/me`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      return res.ok;
+    }
+    if (role === "clinic_admin" || role === "clinic_hr" || role === "clinic_scheduler") {
+      const res = await fetch(`${base}/api/clinics/me`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      return res.ok;
+    }
+    return true;
+  }
+
   const login = async (data: LoginBody) => {
     try {
-      await loginMutation.mutateAsync({ data });
+      const response = await loginMutation.mutateAsync({ data });
+      localStorage.setItem("token", response.token);
       await refetch();
+      const hasProfile = await checkProfileComplete(response.user.role, response.token);
+      if (!hasProfile) {
+        toast({ title: "Welcome back — please complete your profile." });
+        setLocation("/onboarding");
+        return;
+      }
       toast({ title: "Welcome back" });
-      setLocation("/");
+      setLocation(roleHome[response.user.role] ?? "/");
     } catch (error: any) {
       toast({
         title: "Login failed",
@@ -37,7 +69,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const register = async (data: RegisterBody) => {
     try {
-      await registerMutation.mutateAsync({ data });
+      const response = await registerMutation.mutateAsync({ data });
+      localStorage.setItem("token", response.token);
       await refetch();
       toast({ title: "Account created — let's set up your profile!" });
       setLocation("/onboarding");
@@ -54,6 +87,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const logout = async () => {
     try {
       await logoutMutation.mutateAsync();
+      localStorage.removeItem("token");
       await refetch();
       setLocation("/login");
     } catch {

@@ -1,10 +1,13 @@
 import { Router } from "express";
 import bcrypt from "bcryptjs";
+import jwt from "jsonwebtoken";
 import { db } from "@workspace/db";
 import { usersTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
 import { RegisterBody, LoginBody } from "@workspace/api-zod";
 import { authenticate, signToken } from "../middlewares/auth";
+
+const RESET_SECRET = `${process.env.SESSION_SECRET || "locumlink-dev-secret"}-pwd-reset`;
 
 const router = Router();
 
@@ -80,6 +83,67 @@ router.post("/auth/login", async (req, res) => {
     });
   } catch (err) {
     req.log.error({ err }, "Login error");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+router.post("/auth/forgot-password", async (req, res) => {
+  const { email } = req.body as { email?: string };
+  if (!email) {
+    res.status(400).json({ error: "Email is required" });
+    return;
+  }
+  try {
+    const [user] = await db.select().from(usersTable).where(eq(usersTable.email, email)).limit(1);
+    if (!user) {
+      res.json({ message: "If that email is registered, you will receive a password reset link." });
+      return;
+    }
+    const resetToken = jwt.sign(
+      { userId: user.id, type: "password_reset" },
+      RESET_SECRET,
+      { expiresIn: "1h" }
+    );
+    req.log.info({ userId: user.id }, "Password reset token generated");
+    res.json({
+      message: "Password reset link generated.",
+      resetToken,
+    });
+  } catch (err) {
+    req.log.error({ err }, "Forgot password error");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+router.post("/auth/reset-password", async (req, res) => {
+  const { token, newPassword } = req.body as { token?: string; newPassword?: string };
+  if (!token || !newPassword) {
+    res.status(400).json({ error: "Token and new password are required" });
+    return;
+  }
+  if (newPassword.length < 8) {
+    res.status(400).json({ error: "Password must be at least 8 characters" });
+    return;
+  }
+  try {
+    let payload: { userId: number; type: string };
+    try {
+      payload = jwt.verify(token, RESET_SECRET) as { userId: number; type: string };
+    } catch {
+      res.status(400).json({ error: "Invalid or expired reset token" });
+      return;
+    }
+    if (payload.type !== "password_reset") {
+      res.status(400).json({ error: "Invalid token type" });
+      return;
+    }
+    const passwordHash = await bcrypt.hash(newPassword, 12);
+    await db.update(usersTable)
+      .set({ passwordHash, updatedAt: new Date() })
+      .where(eq(usersTable.id, payload.userId));
+    res.json({ message: "Password reset successfully. Please log in with your new password." });
+  } catch (err) {
+    req.log.error({ err }, "Reset password error");
     res.status(500).json({ error: "Internal server error" });
   }
 });

@@ -80,11 +80,18 @@ export default function Login() {
               </form>
             </Form>
           </CardContent>
-          <CardFooter className="flex justify-center border-t p-4 text-sm">
-            <span className="text-muted-foreground">Don't have an account?</span>
-            <Link href="/register">
-              <div className="text-primary font-medium hover:underline ml-1 cursor-pointer">Sign up</div>
-            </Link>
+          <CardFooter className="flex flex-col gap-3 border-t p-4 text-sm">
+            <div className="flex justify-center gap-1">
+              <span className="text-muted-foreground">Don't have an account?</span>
+              <Link href="/register">
+                <span className="text-primary font-medium hover:underline cursor-pointer">Sign up</span>
+              </Link>
+            </div>
+            <div className="flex justify-center">
+              <Link href="/forgot-password">
+                <span className="text-muted-foreground hover:text-primary hover:underline cursor-pointer text-xs">Forgot your password?</span>
+              </Link>
+            </div>
           </CardFooter>
         </Card>
       </div>
