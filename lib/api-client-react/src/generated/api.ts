@@ -17,6 +17,10 @@ import type {
 } from "@tanstack/react-query";
 
 import type {
+  AdminListPaymentsParams,
+  AdminPaymentItem,
+  AdminPaymentList,
+  AdminReleasePaymentBody,
   Application,
   ApplicationList,
   ApplyToShiftBody,
@@ -6005,4 +6009,188 @@ export const useAdminResolveDispute = <
   TContext
 > => {
   return useMutation(getAdminResolveDisputeMutationOptions(options));
+};
+
+/**
+ * @summary List all platform payments with booking/locum/clinic context (admin only)
+ */
+export const getAdminListPaymentsUrl = (params?: AdminListPaymentsParams) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/admin/payments?${stringifiedParams}`
+    : `/api/admin/payments`;
+};
+
+export const adminListPayments = async (
+  params?: AdminListPaymentsParams,
+  options?: RequestInit,
+): Promise<AdminPaymentList> => {
+  return customFetch<AdminPaymentList>(getAdminListPaymentsUrl(params), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getAdminListPaymentsQueryKey = (
+  params?: AdminListPaymentsParams,
+) => {
+  return [`/api/admin/payments`, ...(params ? [params] : [])] as const;
+};
+
+export const getAdminListPaymentsQueryOptions = <
+  TData = Awaited<ReturnType<typeof adminListPayments>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: AdminListPaymentsParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof adminListPayments>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getAdminListPaymentsQueryKey(params);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof adminListPayments>>
+  > = ({ signal }) => adminListPayments(params, { signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof adminListPayments>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type AdminListPaymentsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof adminListPayments>>
+>;
+export type AdminListPaymentsQueryError = ErrorType<unknown>;
+
+/**
+ * @summary List all platform payments with booking/locum/clinic context (admin only)
+ */
+
+export function useAdminListPayments<
+  TData = Awaited<ReturnType<typeof adminListPayments>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: AdminListPaymentsParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof adminListPayments>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getAdminListPaymentsQueryOptions(params, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Release an escrowed payment to the locum
+ */
+export const getAdminReleasePaymentUrl = (id: number) => {
+  return `/api/admin/payments/${id}/release`;
+};
+
+export const adminReleasePayment = async (
+  id: number,
+  adminReleasePaymentBody?: AdminReleasePaymentBody,
+  options?: RequestInit,
+): Promise<AdminPaymentItem> => {
+  return customFetch<AdminPaymentItem>(getAdminReleasePaymentUrl(id), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(adminReleasePaymentBody),
+  });
+};
+
+export const getAdminReleasePaymentMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof adminReleasePayment>>,
+    TError,
+    { id: number; data: BodyType<AdminReleasePaymentBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof adminReleasePayment>>,
+  TError,
+  { id: number; data: BodyType<AdminReleasePaymentBody> },
+  TContext
+> => {
+  const mutationKey = ["adminReleasePayment"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof adminReleasePayment>>,
+    { id: number; data: BodyType<AdminReleasePaymentBody> }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return adminReleasePayment(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type AdminReleasePaymentMutationResult = NonNullable<
+  Awaited<ReturnType<typeof adminReleasePayment>>
+>;
+export type AdminReleasePaymentMutationBody = BodyType<AdminReleasePaymentBody>;
+export type AdminReleasePaymentMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Release an escrowed payment to the locum
+ */
+export const useAdminReleasePayment = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof adminReleasePayment>>,
+    TError,
+    { id: number; data: BodyType<AdminReleasePaymentBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof adminReleasePayment>>,
+  TError,
+  { id: number; data: BodyType<AdminReleasePaymentBody> },
+  TContext
+> => {
+  return useMutation(getAdminReleasePaymentMutationOptions(options));
 };

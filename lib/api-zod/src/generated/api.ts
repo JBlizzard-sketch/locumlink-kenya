@@ -2718,3 +2718,75 @@ export const AdminResolveDisputeResponse = zod.object({
   resolvedAt: zod.coerce.date().optional(),
   createdAt: zod.coerce.date().optional(),
 });
+
+/**
+ * @summary List all platform payments with booking/locum/clinic context (admin only)
+ */
+export const adminListPaymentsQueryPageDefault = 1;
+export const adminListPaymentsQueryLimitDefault = 50;
+
+export const AdminListPaymentsQueryParams = zod.object({
+  status: zod.coerce.string().optional(),
+  page: zod.coerce.number().default(adminListPaymentsQueryPageDefault),
+  limit: zod.coerce.number().default(adminListPaymentsQueryLimitDefault),
+});
+
+export const AdminListPaymentsResponse = zod.object({
+  data: zod.array(
+    zod.object({
+      id: zod.number(),
+      bookingId: zod.number(),
+      grossAmount: zod.number(),
+      platformFee: zod.number(),
+      locumPayout: zod.number(),
+      paymentMethod: zod.string(),
+      status: zod.string(),
+      mpesaTransactionId: zod.string().nullish(),
+      invoiceNumber: zod.string().nullish(),
+      paidAt: zod.coerce.date().nullish(),
+      releasedAt: zod.coerce.date().nullish(),
+      createdAt: zod.coerce.date(),
+      locumName: zod.string(),
+      clinicName: zod.string(),
+      shiftDate: zod.string().nullish(),
+      shiftTitle: zod.string().nullish(),
+    }),
+  ),
+  total: zod.number(),
+  page: zod.number(),
+  limit: zod.number(),
+  pendingCount: zod.number(),
+  escrowedCount: zod.number(),
+  totalEscrowedVolume: zod.number(),
+});
+
+/**
+ * @summary Release an escrowed payment to the locum
+ */
+export const AdminReleasePaymentParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const AdminReleasePaymentBody = zod.object({
+  mpesaTransactionId: zod.string().optional(),
+  notes: zod.string().optional(),
+});
+
+export const AdminReleasePaymentResponse = zod.object({
+  id: zod.number(),
+  bookingId: zod.number(),
+  grossAmount: zod.number(),
+  platformFee: zod.number(),
+  locumPayout: zod.number(),
+  paymentMethod: zod.string(),
+  status: zod.string(),
+  mpesaTransactionId: zod.string().nullish(),
+  invoiceNumber: zod.string().nullish(),
+  paidAt: zod.coerce.date().nullish(),
+  releasedAt: zod.coerce.date().nullish(),
+  createdAt: zod.coerce.date(),
+  locumName: zod.string(),
+  clinicName: zod.string(),
+  shiftDate: zod.string().nullish(),
+  shiftTitle: zod.string().nullish(),
+});

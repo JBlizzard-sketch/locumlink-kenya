@@ -58,6 +58,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
     { name: "Dashboard", href: "/admin/dashboard", icon: LayoutDashboard },
     { name: "Verifications", href: "/admin/verification", icon: Users },
     { name: "Disputes", href: "/admin/disputes", icon: ActivitySquare },
+    { name: "Payments", href: "/admin/payments", icon: Wallet },
     { name: "Users", href: "/admin/users", icon: User },
   ];
 

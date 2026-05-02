@@ -45,6 +45,7 @@ import AdminDashboard from "@/pages/admin/dashboard";
 import AdminVerification from "@/pages/admin/verification";
 import AdminDisputes from "@/pages/admin/disputes";
 import AdminUsers from "@/pages/admin/users";
+import AdminPayments from "@/pages/admin/payments";
 
 import NotFound from "@/pages/not-found";
 
@@ -92,6 +93,7 @@ export default function Router() {
       <Route path="/admin/dashboard">{() => <ProtectedRoute allowedRoles={["platform_admin"]}><Layout><AdminDashboard /></Layout></ProtectedRoute>}</Route>
       <Route path="/admin/verification">{() => <ProtectedRoute allowedRoles={["platform_admin"]}><Layout><AdminVerification /></Layout></ProtectedRoute>}</Route>
       <Route path="/admin/disputes">{() => <ProtectedRoute allowedRoles={["platform_admin"]}><Layout><AdminDisputes /></Layout></ProtectedRoute>}</Route>
+      <Route path="/admin/payments">{() => <ProtectedRoute allowedRoles={["platform_admin"]}><Layout><AdminPayments /></Layout></ProtectedRoute>}</Route>
       <Route path="/admin/users">{() => <ProtectedRoute allowedRoles={["platform_admin"]}><Layout><AdminUsers /></Layout></ProtectedRoute>}</Route>
 
       <Route component={NotFound} />

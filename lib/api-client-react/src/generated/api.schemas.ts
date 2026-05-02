@@ -366,6 +366,40 @@ export interface PaymentList {
   limit: number;
 }
 
+export interface AdminPaymentItem {
+  id: number;
+  bookingId: number;
+  grossAmount: number;
+  platformFee: number;
+  locumPayout: number;
+  paymentMethod: string;
+  status: string;
+  mpesaTransactionId?: string | null;
+  invoiceNumber?: string | null;
+  paidAt?: string | null;
+  releasedAt?: string | null;
+  createdAt: string;
+  locumName: string;
+  clinicName: string;
+  shiftDate?: string | null;
+  shiftTitle?: string | null;
+}
+
+export interface AdminPaymentList {
+  data: AdminPaymentItem[];
+  total: number;
+  page: number;
+  limit: number;
+  pendingCount: number;
+  escrowedCount: number;
+  totalEscrowedVolume: number;
+}
+
+export interface AdminReleasePaymentBody {
+  mpesaTransactionId?: string;
+  notes?: string;
+}
+
 export type EarningsSummaryByMonthItem = {
   month: string;
   earnings: number;
@@ -826,3 +860,9 @@ export const GetVerificationQueueType = {
   locum: "locum",
   clinic: "clinic",
 } as const;
+
+export type AdminListPaymentsParams = {
+  status?: string;
+  page?: number;
+  limit?: number;
+};

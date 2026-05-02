@@ -173,8 +173,8 @@ router.patch("/shifts/:id", authenticate, async (req, res) => {
 });
 
 router.post("/shifts/:shiftId/invite/:locumId", authenticate, async (req, res) => {
-  const shiftId = parseInt(req.params.shiftId);
-  const locumId = parseInt(req.params.locumId);
+  const shiftId = parseInt(req.params.shiftId as string);
+  const locumId = parseInt(req.params.locumId as string);
   if (isNaN(shiftId) || isNaN(locumId)) { res.status(400).json({ error: "Invalid id" }); return; }
   const { userId } = (req as any).user;
   try {

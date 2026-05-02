@@ -1470,6 +1470,59 @@ paths:
               schema:
                 $ref: "#/components/schemas/Dispute"
 
+  /admin/payments:
+    get:
+      operationId: adminListPayments
+      tags: [admin]
+      summary: List all platform payments with booking/locum/clinic context (admin only)
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 50
+      responses:
+        "200":
+          description: Enriched payment list
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminPaymentList"
+
+  /admin/payments/{id}/release:
+    post:
+      operationId: adminReleasePayment
+      tags: [admin]
+      summary: Release an escrowed payment to the locum
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AdminReleasePaymentBody"
+      responses:
+        "200":
+          description: Payment released
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminPaymentItem"
+
 components:
   schemas:
     HealthStatus:
@@ -2248,6 +2301,98 @@ components:
         - total
         - page
         - limit
+
+    AdminPaymentItem:
+      type: object
+      properties:
+        id:
+          type: integer
+        bookingId:
+          type: integer
+        grossAmount:
+          type: integer
+        platformFee:
+          type: integer
+        locumPayout:
+          type: integer
+        paymentMethod:
+          type: string
+        status:
+          type: string
+        mpesaTransactionId:
+          type: string
+          nullable: true
+        invoiceNumber:
+          type: string
+          nullable: true
+        paidAt:
+          type: string
+          format: date-time
+          nullable: true
+        releasedAt:
+          type: string
+          format: date-time
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        locumName:
+          type: string
+        clinicName:
+          type: string
+        shiftDate:
+          type: string
+          nullable: true
+        shiftTitle:
+          type: string
+          nullable: true
+      required:
+        - id
+        - bookingId
+        - grossAmount
+        - platformFee
+        - locumPayout
+        - paymentMethod
+        - status
+        - createdAt
+        - locumName
+        - clinicName
+
+    AdminPaymentList:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/AdminPaymentItem"
+        total:
+          type: integer
+        page:
+          type: integer
+        limit:
+          type: integer
+        pendingCount:
+          type: integer
+        escrowedCount:
+          type: integer
+        totalEscrowedVolume:
+          type: integer
+      required:
+        - data
+        - total
+        - page
+        - limit
+        - pendingCount
+        - escrowedCount
+        - totalEscrowedVolume
+
+    AdminReleasePaymentBody:
+      type: object
+      properties:
+        mpesaTransactionId:
+          type: string
+        notes:
+          type: string
 
     EarningsSummary:
       type: object

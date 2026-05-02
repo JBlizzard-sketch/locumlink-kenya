@@ -45,6 +45,7 @@ export type SseEventType =
   | "credential_verified"
   | "credential_rejected"
   | "shift_reminder"
+  | "shift_invitation"
   | "ping";
 
 export interface SseEvent {
