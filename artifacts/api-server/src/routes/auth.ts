@@ -87,6 +87,43 @@ router.post("/auth/login", async (req, res) => {
   }
 });
 
+router.post("/auth/change-password", authenticate, async (req, res) => {
+  const { currentPassword, newPassword } = req.body as {
+    currentPassword?: string;
+    newPassword?: string;
+  };
+  if (!currentPassword || !newPassword) {
+    res.status(400).json({ error: "Current password and new password are required" });
+    return;
+  }
+  if (newPassword.length < 8) {
+    res.status(400).json({ error: "New password must be at least 8 characters" });
+    return;
+  }
+  const { userId } = (req as any).user;
+  try {
+    const [user] = await db.select().from(usersTable).where(eq(usersTable.id, userId)).limit(1);
+    if (!user) {
+      res.status(404).json({ error: "User not found" });
+      return;
+    }
+    const valid = await bcrypt.compare(currentPassword, user.passwordHash);
+    if (!valid) {
+      res.status(400).json({ error: "Current password is incorrect" });
+      return;
+    }
+    const passwordHash = await bcrypt.hash(newPassword, 12);
+    await db.update(usersTable)
+      .set({ passwordHash, updatedAt: new Date() })
+      .where(eq(usersTable.id, userId));
+    req.log.info({ userId }, "Password changed");
+    res.json({ message: "Password changed successfully" });
+  } catch (err) {
+    req.log.error({ err }, "Change password error");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
 router.post("/auth/forgot-password", async (req, res) => {
   const { email } = req.body as { email?: string };
   if (!email) {

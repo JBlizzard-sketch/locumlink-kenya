@@ -50,6 +50,20 @@ export const LoginResponse = zod.object({
 });
 
 /**
+ * @summary Change password for the current authenticated user
+ */
+export const changePasswordBodyNewPasswordMin = 8;
+
+export const ChangePasswordBody = zod.object({
+  currentPassword: zod.string(),
+  newPassword: zod.string().min(changePasswordBodyNewPasswordMin),
+});
+
+export const ChangePasswordResponse = zod.object({
+  message: zod.string(),
+});
+
+/**
  * @summary Request a password reset token
  */
 export const ForgotPasswordBody = zod.object({

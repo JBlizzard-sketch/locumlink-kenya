@@ -738,6 +738,12 @@ export interface VerifyEntityBody {
   notes?: string;
 }
 
+export interface ChangePasswordBody {
+  currentPassword: string;
+  /** @minLength 8 */
+  newPassword: string;
+}
+
 export interface ForgotPasswordBody {
   email: string;
 }

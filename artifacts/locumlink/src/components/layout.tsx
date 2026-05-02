@@ -134,7 +134,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
         </nav>
 
         <div className="p-4 border-t">
-          <div className="flex items-center gap-3 mb-4">
+          <div className="flex items-center gap-3 mb-3">
             <Avatar>
               <AvatarFallback className="bg-primary/10 text-primary">
                 {user?.email?.charAt(0).toUpperCase()}
@@ -145,10 +145,18 @@ export function Layout({ children }: { children: React.ReactNode }) {
               <span className="text-xs text-muted-foreground capitalize">{user?.role?.replace(/_/g, " ")}</span>
             </div>
           </div>
-          <Button variant="outline" className="w-full justify-start text-muted-foreground" onClick={logout}>
-            <LogOut className="h-4 w-4 mr-2" />
-            Sign Out
-          </Button>
+          <div className="space-y-1">
+            <Link href="/account/settings">
+              <div className={`flex items-center gap-2 px-3 py-2 rounded-md text-sm text-muted-foreground hover:text-foreground hover:bg-secondary cursor-pointer transition-colors ${location === "/account/settings" ? "bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground" : ""}`}>
+                <Settings className="h-4 w-4" />
+                <span>Account Settings</span>
+              </div>
+            </Link>
+            <Button variant="outline" className="w-full justify-start text-muted-foreground" onClick={logout}>
+              <LogOut className="h-4 w-4 mr-2" />
+              Sign Out
+            </Button>
+          </div>
         </div>
       </aside>
 
@@ -199,6 +207,12 @@ export function Layout({ children }: { children: React.ReactNode }) {
                     </span>
                   </div>
                 </div>
+                <Link href="/account/settings" onClick={() => setMobileOpen(false)}>
+                  <div className={`flex items-center gap-2 px-3 py-2 rounded-md text-sm text-muted-foreground hover:text-foreground hover:bg-secondary cursor-pointer transition-colors ${location === "/account/settings" ? "bg-primary text-primary-foreground" : ""}`}>
+                    <Settings className="h-4 w-4" />
+                    <span>Account Settings</span>
+                  </div>
+                </Link>
                 <Button
                   variant="outline"
                   className="w-full justify-start text-muted-foreground"
