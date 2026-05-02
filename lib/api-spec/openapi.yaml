@@ -3,20 +3,45 @@ info:
   # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: LocumLink Kenya API — two-sided marketplace for medical staffing
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
+  - name: auth
+    description: Authentication and user management
+  - name: specialties
+    description: Medical specialties and rate benchmarks
+  - name: clinics
+    description: Clinic profiles and management
+  - name: locums
+    description: Locum professional profiles and management
+  - name: shifts
+    description: Shift posting, discovery and management
+  - name: applications
+    description: Shift applications workflow
+  - name: bookings
+    description: Confirmed bookings management
+  - name: payments
+    description: Payment processing and history
+  - name: ratings
+    description: Bidirectional rating system
+  - name: disputes
+    description: Dispute resolution workflow
+  - name: notifications
+    description: Notification preferences and history
+  - name: analytics
+    description: Analytics dashboards for clinics and locums
+  - name: admin
+    description: Platform administration
 paths:
   /healthz:
     get:
       operationId: healthCheck
       tags: [health]
       summary: Health check
-      description: Returns server health status
       responses:
         "200":
           description: Healthy
@@ -24,6 +49,1223 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  # AUTH
+  /auth/register:
+    post:
+      operationId: register
+      tags: [auth]
+      summary: Register a new user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RegisterBody"
+      responses:
+        "201":
+          description: User registered
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthResponse"
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /auth/login:
+    post:
+      operationId: login
+      tags: [auth]
+      summary: Login
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginBody"
+      responses:
+        "200":
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthResponse"
+        "401":
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /auth/logout:
+    post:
+      operationId: logout
+      tags: [auth]
+      summary: Logout current user
+      responses:
+        "200":
+          description: Logged out
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+
+  /auth/me:
+    get:
+      operationId: getMe
+      tags: [auth]
+      summary: Get current authenticated user
+      responses:
+        "200":
+          description: Current user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CurrentUser"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  # SPECIALTIES
+  /specialties:
+    get:
+      operationId: listSpecialties
+      tags: [specialties]
+      summary: List all medical specialties with rate benchmarks
+      responses:
+        "200":
+          description: List of specialties
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SpecialtyList"
+
+  /specialties/{id}:
+    get:
+      operationId: getSpecialty
+      tags: [specialties]
+      summary: Get a specialty by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Specialty details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Specialty"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  # CLINICS
+  /clinics:
+    get:
+      operationId: listClinics
+      tags: [clinics]
+      summary: List verified clinics
+      parameters:
+        - name: subCounty
+          in: query
+          schema:
+            type: string
+        - name: facilityType
+          in: query
+          schema:
+            type: string
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+      responses:
+        "200":
+          description: List of clinics
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ClinicList"
+    post:
+      operationId: createClinic
+      tags: [clinics]
+      summary: Create a clinic profile
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateClinicBody"
+      responses:
+        "201":
+          description: Clinic created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Clinic"
+
+  /clinics/me:
+    get:
+      operationId: getMyClinic
+      tags: [clinics]
+      summary: Get the current user's clinic profile
+      responses:
+        "200":
+          description: Clinic profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Clinic"
+
+  /clinics/{id}:
+    get:
+      operationId: getClinic
+      tags: [clinics]
+      summary: Get a clinic by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Clinic details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Clinic"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    patch:
+      operationId: updateClinic
+      tags: [clinics]
+      summary: Update clinic profile
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateClinicBody"
+      responses:
+        "200":
+          description: Updated clinic
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Clinic"
+
+  # LOCUMS
+  /locums:
+    get:
+      operationId: listLocums
+      tags: [locums]
+      summary: List verified locum professionals
+      parameters:
+        - name: specialtyId
+          in: query
+          schema:
+            type: integer
+        - name: verificationStatus
+          in: query
+          schema:
+            type: string
+        - name: subCounty
+          in: query
+          schema:
+            type: string
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+      responses:
+        "200":
+          description: List of locums
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LocumList"
+    post:
+      operationId: createLocum
+      tags: [locums]
+      summary: Create a locum profile
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateLocumBody"
+      responses:
+        "201":
+          description: Locum created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Locum"
+
+  /locums/me:
+    get:
+      operationId: getMyLocum
+      tags: [locums]
+      summary: Get the current locum's profile
+      responses:
+        "200":
+          description: Locum profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Locum"
+
+  /locums/{id}:
+    get:
+      operationId: getLocum
+      tags: [locums]
+      summary: Get a locum by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Locum details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Locum"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    patch:
+      operationId: updateLocum
+      tags: [locums]
+      summary: Update locum profile
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateLocumBody"
+      responses:
+        "200":
+          description: Updated locum
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Locum"
+
+  /locums/{id}/availability:
+    get:
+      operationId: getLocumAvailability
+      tags: [locums]
+      summary: Get locum availability calendar
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: month
+          in: query
+          schema:
+            type: string
+            description: "Format: YYYY-MM"
+      responses:
+        "200":
+          description: Availability slots
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AvailabilityList"
+    post:
+      operationId: setLocumAvailability
+      tags: [locums]
+      summary: Set availability slots
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SetAvailabilityBody"
+      responses:
+        "200":
+          description: Availability updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+
+  # SHIFTS
+  /shifts:
+    get:
+      operationId: listShifts
+      tags: [shifts]
+      summary: List open shifts with filtering
+      parameters:
+        - name: specialtyId
+          in: query
+          schema:
+            type: integer
+        - name: date
+          in: query
+          schema:
+            type: string
+        - name: dateFrom
+          in: query
+          schema:
+            type: string
+        - name: dateTo
+          in: query
+          schema:
+            type: string
+        - name: rateMin
+          in: query
+          schema:
+            type: integer
+        - name: rateMax
+          in: query
+          schema:
+            type: integer
+        - name: urgency
+          in: query
+          schema:
+            type: string
+        - name: clinicId
+          in: query
+          schema:
+            type: integer
+        - name: status
+          in: query
+          schema:
+            type: string
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+      responses:
+        "200":
+          description: List of shifts
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ShiftList"
+    post:
+      operationId: createShift
+      tags: [shifts]
+      summary: Post a new shift
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateShiftBody"
+      responses:
+        "201":
+          description: Shift created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Shift"
+
+  /shifts/{id}:
+    get:
+      operationId: getShift
+      tags: [shifts]
+      summary: Get a shift by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Shift details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ShiftDetail"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    patch:
+      operationId: updateShift
+      tags: [shifts]
+      summary: Update a shift
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateShiftBody"
+      responses:
+        "200":
+          description: Updated shift
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Shift"
+    delete:
+      operationId: cancelShift
+      tags: [shifts]
+      summary: Cancel a shift
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Shift cancelled
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+
+  /shifts/upcoming:
+    get:
+      operationId: listUpcomingShifts
+      tags: [shifts]
+      summary: List upcoming confirmed shifts for the current user
+      responses:
+        "200":
+          description: Upcoming shifts
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ShiftList"
+
+  /shifts/matched:
+    get:
+      operationId: listMatchedShifts
+      tags: [shifts]
+      summary: List shifts matched to the current locum
+      responses:
+        "200":
+          description: Matched shifts
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ShiftList"
+
+  # APPLICATIONS
+  /shifts/{shiftId}/applications:
+    get:
+      operationId: listShiftApplications
+      tags: [applications]
+      summary: List applications for a shift (clinic view)
+      parameters:
+        - name: shiftId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Applications
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApplicationList"
+    post:
+      operationId: applyToShift
+      tags: [applications]
+      summary: Apply to a shift (locum)
+      parameters:
+        - name: shiftId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ApplyToShiftBody"
+      responses:
+        "201":
+          description: Application submitted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Application"
+
+  /applications/{id}/shortlist:
+    post:
+      operationId: shortlistApplication
+      tags: [applications]
+      summary: Shortlist an application
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Application shortlisted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Application"
+
+  /applications/{id}/confirm:
+    post:
+      operationId: confirmApplication
+      tags: [applications]
+      summary: Confirm an application (creates booking)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "201":
+          description: Booking created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Booking"
+
+  /applications/{id}/reject:
+    post:
+      operationId: rejectApplication
+      tags: [applications]
+      summary: Reject an application
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Application rejected
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Application"
+
+  /applications/my:
+    get:
+      operationId: listMyApplications
+      tags: [applications]
+      summary: List the current locum's applications
+      responses:
+        "200":
+          description: My applications
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApplicationList"
+
+  # BOOKINGS
+  /bookings:
+    get:
+      operationId: listBookings
+      tags: [bookings]
+      summary: List bookings for the current user
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+      responses:
+        "200":
+          description: Bookings
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BookingList"
+
+  /bookings/{id}:
+    get:
+      operationId: getBooking
+      tags: [bookings]
+      summary: Get booking details
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Booking
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BookingDetail"
+
+  /bookings/{id}/check-in:
+    post:
+      operationId: checkInBooking
+      tags: [bookings]
+      summary: Mark locum as checked in
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Checked in
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Booking"
+
+  /bookings/{id}/complete:
+    post:
+      operationId: completeBooking
+      tags: [bookings]
+      summary: Mark booking as completed
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Booking completed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Booking"
+
+  /bookings/{id}/sign-contract:
+    post:
+      operationId: signContract
+      tags: [bookings]
+      summary: Sign the booking contract
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Contract signed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Booking"
+
+  # PAYMENTS
+  /payments:
+    get:
+      operationId: listPayments
+      tags: [payments]
+      summary: List payment history for the current user
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+      responses:
+        "200":
+          description: Payment history
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaymentList"
+
+  /payments/{id}:
+    get:
+      operationId: getPayment
+      tags: [payments]
+      summary: Get payment details
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Payment
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Payment"
+
+  /payments/earnings-summary:
+    get:
+      operationId: getEarningsSummary
+      tags: [payments]
+      summary: Locum earnings summary with KRA-ready tax breakdown
+      parameters:
+        - name: year
+          in: query
+          schema:
+            type: integer
+        - name: month
+          in: query
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Earnings summary
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EarningsSummary"
+
+  # RATINGS
+  /bookings/{bookingId}/rating:
+    post:
+      operationId: submitRating
+      tags: [ratings]
+      summary: Submit a rating for a completed booking
+      parameters:
+        - name: bookingId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SubmitRatingBody"
+      responses:
+        "201":
+          description: Rating submitted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Rating"
+    get:
+      operationId: getBookingRatings
+      tags: [ratings]
+      summary: Get ratings for a booking
+      parameters:
+        - name: bookingId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Ratings
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RatingList"
+
+  /locums/{id}/ratings:
+    get:
+      operationId: getLocumRatings
+      tags: [ratings]
+      summary: Get all ratings for a locum
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Locum ratings
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RatingList"
+
+  /clinics/{id}/ratings:
+    get:
+      operationId: getClinicRatings
+      tags: [ratings]
+      summary: Get all ratings for a clinic
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Clinic ratings
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RatingList"
+
+  # DISPUTES
+  /disputes:
+    post:
+      operationId: raiseDispute
+      tags: [disputes]
+      summary: Raise a dispute for a booking
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RaiseDisputeBody"
+      responses:
+        "201":
+          description: Dispute raised
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Dispute"
+    get:
+      operationId: listDisputes
+      tags: [disputes]
+      summary: List disputes for the current user
+      responses:
+        "200":
+          description: Disputes
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DisputeList"
+
+  /disputes/{id}:
+    get:
+      operationId: getDispute
+      tags: [disputes]
+      summary: Get dispute details
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Dispute details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Dispute"
+
+  # NOTIFICATIONS
+  /notifications:
+    get:
+      operationId: listNotifications
+      tags: [notifications]
+      summary: List notifications for the current user
+      parameters:
+        - name: unreadOnly
+          in: query
+          schema:
+            type: boolean
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+      responses:
+        "200":
+          description: Notifications
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NotificationList"
+
+  /notifications/preferences:
+    get:
+      operationId: getNotificationPreferences
+      tags: [notifications]
+      summary: Get notification preferences
+      responses:
+        "200":
+          description: Preferences
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NotificationPreferences"
+    patch:
+      operationId: updateNotificationPreferences
+      tags: [notifications]
+      summary: Update notification preferences
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateNotificationPreferencesBody"
+      responses:
+        "200":
+          description: Updated preferences
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NotificationPreferences"
+
+  /notifications/{id}/read:
+    post:
+      operationId: markNotificationRead
+      tags: [notifications]
+      summary: Mark a notification as read
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Marked as read
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+
+  # ANALYTICS
+  /analytics/clinic:
+    get:
+      operationId: getClinicAnalytics
+      tags: [analytics]
+      summary: Get clinic HR analytics dashboard data
+      parameters:
+        - name: period
+          in: query
+          schema:
+            type: string
+            enum: [week, month, quarter, year]
+            default: month
+      responses:
+        "200":
+          description: Clinic analytics
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ClinicAnalytics"
+
+  /analytics/locum:
+    get:
+      operationId: getLocumAnalytics
+      tags: [analytics]
+      summary: Get locum earnings and performance analytics
+      parameters:
+        - name: period
+          in: query
+          schema:
+            type: string
+            enum: [week, month, quarter, year]
+            default: month
+      responses:
+        "200":
+          description: Locum analytics
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LocumAnalytics"
+
+  /analytics/platform-summary:
+    get:
+      operationId: getPlatformSummary
+      tags: [analytics]
+      summary: Get platform-wide summary stats (admin)
+      responses:
+        "200":
+          description: Platform summary
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PlatformSummary"
+
+  # ADMIN
+  /admin/verification-queue:
+    get:
+      operationId: getVerificationQueue
+      tags: [admin]
+      summary: Get pending verification queue
+      parameters:
+        - name: type
+          in: query
+          schema:
+            type: string
+            enum: [locum, clinic]
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+      responses:
+        "200":
+          description: Verification queue
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VerificationQueue"
+
+  /admin/locums/{id}/verify:
+    post:
+      operationId: adminVerifyLocum
+      tags: [admin]
+      summary: Approve or reject locum verification
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/VerifyEntityBody"
+      responses:
+        "200":
+          description: Locum verification updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+
+  /admin/clinics/{id}/verify:
+    post:
+      operationId: adminVerifyClinic
+      tags: [admin]
+      summary: Approve or reject clinic verification
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/VerifyEntityBody"
+      responses:
+        "200":
+          description: Clinic verification updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+
+  /admin/disputes/{id}/resolve:
+    post:
+      operationId: adminResolveDispute
+      tags: [admin]
+      summary: Resolve a dispute
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ResolveDisputeBody"
+      responses:
+        "200":
+          description: Dispute resolved
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Dispute"
+
 components:
   schemas:
     HealthStatus:
@@ -34,3 +1276,1295 @@ components:
       required:
         - status
 
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+        details:
+          type: string
+      required:
+        - error
+
+    MessageResponse:
+      type: object
+      properties:
+        message:
+          type: string
+      required:
+        - message
+
+    # AUTH SCHEMAS
+    RegisterBody:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+        phone:
+          type: string
+        password:
+          type: string
+          minLength: 8
+        role:
+          type: string
+          enum: [locum, clinic_admin]
+        firstName:
+          type: string
+        lastName:
+          type: string
+      required:
+        - email
+        - phone
+        - password
+        - role
+
+    LoginBody:
+      type: object
+      properties:
+        email:
+          type: string
+        password:
+          type: string
+      required:
+        - email
+        - password
+
+    AuthResponse:
+      type: object
+      properties:
+        token:
+          type: string
+        user:
+          $ref: "#/components/schemas/CurrentUser"
+      required:
+        - token
+        - user
+
+    CurrentUser:
+      type: object
+      properties:
+        id:
+          type: integer
+        email:
+          type: string
+        phone:
+          type: string
+        role:
+          type: string
+        isEmailVerified:
+          type: string
+        isPhoneVerified:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - email
+        - phone
+        - role
+
+    # SPECIALTY SCHEMAS
+    Specialty:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        category:
+          type: string
+        suggestedRateMin:
+          type: integer
+        suggestedRateMax:
+          type: integer
+        description:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - name
+        - category
+        - suggestedRateMin
+        - suggestedRateMax
+
+    SpecialtyList:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/Specialty"
+        total:
+          type: integer
+      required:
+        - data
+        - total
+
+    # CLINIC SCHEMAS
+    Clinic:
+      type: object
+      properties:
+        id:
+          type: integer
+        userId:
+          type: integer
+        name:
+          type: string
+        slug:
+          type: string
+        facilityType:
+          type: string
+        address:
+          type: string
+        subCounty:
+          type: string
+        county:
+          type: string
+        lat:
+          type: string
+        lng:
+          type: string
+        contactName:
+          type: string
+        contactEmail:
+          type: string
+        contactPhone:
+          type: string
+        verificationStatus:
+          type: string
+        payerScore:
+          type: string
+        totalShiftsPosted:
+          type: integer
+        totalShiftsFilled:
+          type: integer
+        logoUrl:
+          type: string
+        bio:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - name
+        - facilityType
+        - address
+        - subCounty
+        - verificationStatus
+
+    ClinicList:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/Clinic"
+        total:
+          type: integer
+        page:
+          type: integer
+        limit:
+          type: integer
+      required:
+        - data
+        - total
+        - page
+        - limit
+
+    CreateClinicBody:
+      type: object
+      properties:
+        name:
+          type: string
+        facilityType:
+          type: string
+        address:
+          type: string
+        subCounty:
+          type: string
+        contactName:
+          type: string
+        contactEmail:
+          type: string
+        contactPhone:
+          type: string
+        mohFacilityNumber:
+          type: string
+        kmpdc_licence:
+          type: string
+        businessRegistration:
+          type: string
+        bio:
+          type: string
+      required:
+        - name
+        - facilityType
+        - address
+        - subCounty
+        - contactName
+        - contactEmail
+        - contactPhone
+
+    UpdateClinicBody:
+      type: object
+      properties:
+        name:
+          type: string
+        facilityType:
+          type: string
+        address:
+          type: string
+        subCounty:
+          type: string
+        contactName:
+          type: string
+        contactEmail:
+          type: string
+        contactPhone:
+          type: string
+        bio:
+          type: string
+        logoUrl:
+          type: string
+        mpesaNumber:
+          type: string
+        bankName:
+          type: string
+        bankAccount:
+          type: string
+
+    # LOCUM SCHEMAS
+    Locum:
+      type: object
+      properties:
+        id:
+          type: integer
+        userId:
+          type: integer
+        firstName:
+          type: string
+        lastName:
+          type: string
+        bio:
+          type: string
+        primarySpecialtyId:
+          type: integer
+        registrationNumber:
+          type: string
+        registrationBody:
+          type: string
+        yearsExperience:
+          type: integer
+        preferredRatePerShift:
+          type: integer
+        verificationStatus:
+          type: string
+        reliabilityScore:
+          type: string
+        totalShiftsCompleted:
+          type: integer
+        profilePhotoUrl:
+          type: string
+        isAvailableForUrgent:
+          type: boolean
+        subCounty:
+          type: string
+        county:
+          type: string
+        certExpiryDate:
+          type: string
+          format: date-time
+        createdAt:
+          type: string
+          format: date-time
+        specialty:
+          $ref: "#/components/schemas/Specialty"
+      required:
+        - id
+        - firstName
+        - lastName
+        - registrationNumber
+        - registrationBody
+        - verificationStatus
+
+    LocumList:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/Locum"
+        total:
+          type: integer
+        page:
+          type: integer
+        limit:
+          type: integer
+      required:
+        - data
+        - total
+        - page
+        - limit
+
+    CreateLocumBody:
+      type: object
+      properties:
+        firstName:
+          type: string
+        lastName:
+          type: string
+        registrationNumber:
+          type: string
+        registrationBody:
+          type: string
+        primarySpecialtyId:
+          type: integer
+        yearsExperience:
+          type: integer
+        mpesaNumber:
+          type: string
+        bio:
+          type: string
+      required:
+        - firstName
+        - lastName
+        - registrationNumber
+        - registrationBody
+        - primarySpecialtyId
+        - yearsExperience
+
+    UpdateLocumBody:
+      type: object
+      properties:
+        firstName:
+          type: string
+        lastName:
+          type: string
+        bio:
+          type: string
+        primarySpecialtyId:
+          type: integer
+        yearsExperience:
+          type: integer
+        mpesaNumber:
+          type: string
+        preferredRatePerShift:
+          type: integer
+        isAvailableForUrgent:
+          type: boolean
+        subCounty:
+          type: string
+        profilePhotoUrl:
+          type: string
+        kraPin:
+          type: string
+
+    AvailabilitySlot:
+      type: object
+      properties:
+        id:
+          type: integer
+        locumId:
+          type: integer
+        date:
+          type: string
+        startTime:
+          type: string
+        endTime:
+          type: string
+        isAvailable:
+          type: boolean
+        isRecurring:
+          type: boolean
+        recurringDayOfWeek:
+          type: integer
+      required:
+        - id
+        - locumId
+        - date
+        - isAvailable
+
+    AvailabilityList:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/AvailabilitySlot"
+      required:
+        - data
+
+    SetAvailabilityBody:
+      type: object
+      properties:
+        slots:
+          type: array
+          items:
+            type: object
+            properties:
+              date:
+                type: string
+              startTime:
+                type: string
+              endTime:
+                type: string
+              isAvailable:
+                type: boolean
+              isRecurring:
+                type: boolean
+              recurringDayOfWeek:
+                type: integer
+            required:
+              - date
+              - isAvailable
+      required:
+        - slots
+
+    # SHIFT SCHEMAS
+    Shift:
+      type: object
+      properties:
+        id:
+          type: integer
+        clinicId:
+          type: integer
+        specialtyId:
+          type: integer
+        title:
+          type: string
+        description:
+          type: string
+        shiftDate:
+          type: string
+        startTime:
+          type: string
+        endTime:
+          type: string
+        rate:
+          type: integer
+        positionsAvailable:
+          type: integer
+        positionsFilled:
+          type: integer
+        status:
+          type: string
+        urgency:
+          type: string
+        minYearsExperience:
+          type: integer
+        specificRequirements:
+          type: string
+        insuranceCovered:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        clinic:
+          $ref: "#/components/schemas/Clinic"
+        specialty:
+          $ref: "#/components/schemas/Specialty"
+      required:
+        - id
+        - clinicId
+        - specialtyId
+        - title
+        - shiftDate
+        - startTime
+        - endTime
+        - rate
+        - status
+        - urgency
+
+    ShiftDetail:
+      allOf:
+        - $ref: "#/components/schemas/Shift"
+        - type: object
+          properties:
+            applications:
+              type: array
+              items:
+                $ref: "#/components/schemas/Application"
+            applicationCount:
+              type: integer
+
+    ShiftList:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/Shift"
+        total:
+          type: integer
+        page:
+          type: integer
+        limit:
+          type: integer
+      required:
+        - data
+        - total
+        - page
+        - limit
+
+    CreateShiftBody:
+      type: object
+      properties:
+        specialtyId:
+          type: integer
+        title:
+          type: string
+        description:
+          type: string
+        shiftDate:
+          type: string
+        startTime:
+          type: string
+        endTime:
+          type: string
+        rate:
+          type: integer
+        positionsAvailable:
+          type: integer
+        urgency:
+          type: string
+          enum: [normal, urgent, emergency]
+        minYearsExperience:
+          type: integer
+        specificRequirements:
+          type: string
+        insuranceCovered:
+          type: string
+      required:
+        - specialtyId
+        - title
+        - shiftDate
+        - startTime
+        - endTime
+        - rate
+
+    UpdateShiftBody:
+      type: object
+      properties:
+        title:
+          type: string
+        description:
+          type: string
+        rate:
+          type: integer
+        urgency:
+          type: string
+        specificRequirements:
+          type: string
+        status:
+          type: string
+
+    # APPLICATION SCHEMAS
+    Application:
+      type: object
+      properties:
+        id:
+          type: integer
+        shiftId:
+          type: integer
+        locumId:
+          type: integer
+        status:
+          type: string
+        coverMessage:
+          type: string
+        matchScore:
+          type: string
+        appliedAt:
+          type: string
+          format: date-time
+        locum:
+          $ref: "#/components/schemas/Locum"
+        shift:
+          $ref: "#/components/schemas/Shift"
+      required:
+        - id
+        - shiftId
+        - locumId
+        - status
+        - appliedAt
+
+    ApplicationList:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/Application"
+        total:
+          type: integer
+      required:
+        - data
+        - total
+
+    ApplyToShiftBody:
+      type: object
+      properties:
+        coverMessage:
+          type: string
+
+    # BOOKING SCHEMAS
+    Booking:
+      type: object
+      properties:
+        id:
+          type: integer
+        shiftId:
+          type: integer
+        locumId:
+          type: integer
+        applicationId:
+          type: integer
+        status:
+          type: string
+        contractUrl:
+          type: string
+        contractSignedByLocumAt:
+          type: string
+          format: date-time
+        contractSignedByClinicAt:
+          type: string
+          format: date-time
+        escrowAmount:
+          type: integer
+        checkedInAt:
+          type: string
+          format: date-time
+        completedAt:
+          type: string
+          format: date-time
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - shiftId
+        - locumId
+        - status
+
+    BookingDetail:
+      allOf:
+        - $ref: "#/components/schemas/Booking"
+        - type: object
+          properties:
+            shift:
+              $ref: "#/components/schemas/Shift"
+            locum:
+              $ref: "#/components/schemas/Locum"
+            payment:
+              $ref: "#/components/schemas/Payment"
+            dispute:
+              $ref: "#/components/schemas/Dispute"
+
+    BookingList:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/BookingDetail"
+        total:
+          type: integer
+        page:
+          type: integer
+        limit:
+          type: integer
+      required:
+        - data
+        - total
+        - page
+        - limit
+
+    # PAYMENT SCHEMAS
+    Payment:
+      type: object
+      properties:
+        id:
+          type: integer
+        bookingId:
+          type: integer
+        grossAmount:
+          type: integer
+        platformFee:
+          type: integer
+        locumPayout:
+          type: integer
+        paymentMethod:
+          type: string
+        status:
+          type: string
+        mpesaTransactionId:
+          type: string
+        invoiceUrl:
+          type: string
+        invoiceNumber:
+          type: string
+        paidAt:
+          type: string
+          format: date-time
+        releasedAt:
+          type: string
+          format: date-time
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - bookingId
+        - grossAmount
+        - platformFee
+        - locumPayout
+        - paymentMethod
+        - status
+
+    PaymentList:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/Payment"
+        total:
+          type: integer
+        page:
+          type: integer
+        limit:
+          type: integer
+      required:
+        - data
+        - total
+        - page
+        - limit
+
+    EarningsSummary:
+      type: object
+      properties:
+        totalEarnings:
+          type: integer
+        totalShifts:
+          type: integer
+        averagePerShift:
+          type: integer
+        platformFeesDeducted:
+          type: integer
+        netEarnings:
+          type: integer
+        byMonth:
+          type: array
+          items:
+            type: object
+            properties:
+              month:
+                type: string
+              earnings:
+                type: integer
+              shifts:
+                type: integer
+            required:
+              - month
+              - earnings
+              - shifts
+        bySpecialty:
+          type: array
+          items:
+            type: object
+            properties:
+              specialtyName:
+                type: string
+              earnings:
+                type: integer
+              shifts:
+                type: integer
+            required:
+              - specialtyName
+              - earnings
+              - shifts
+        taxYear:
+          type: integer
+        kraReadyGrossIncome:
+          type: integer
+      required:
+        - totalEarnings
+        - totalShifts
+        - netEarnings
+        - kraReadyGrossIncome
+
+    # RATING SCHEMAS
+    Rating:
+      type: object
+      properties:
+        id:
+          type: integer
+        bookingId:
+          type: integer
+        raterType:
+          type: string
+        overallScore:
+          type: integer
+        criteria:
+          type: object
+        comment:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - bookingId
+        - raterType
+        - overallScore
+
+    RatingList:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/Rating"
+        total:
+          type: integer
+        averageScore:
+          type: number
+      required:
+        - data
+        - total
+        - averageScore
+
+    SubmitRatingBody:
+      type: object
+      properties:
+        raterType:
+          type: string
+          enum: [locum, clinic]
+        overallScore:
+          type: integer
+          minimum: 1
+          maximum: 5
+        criteria:
+          type: object
+        comment:
+          type: string
+      required:
+        - raterType
+        - overallScore
+
+    # DISPUTE SCHEMAS
+    Dispute:
+      type: object
+      properties:
+        id:
+          type: integer
+        bookingId:
+          type: integer
+        disputeType:
+          type: string
+        description:
+          type: string
+        status:
+          type: string
+        resolutionNotes:
+          type: string
+        penaltyAppliedToLocum:
+          type: integer
+        penaltyAppliedToClinic:
+          type: integer
+        resolvedAt:
+          type: string
+          format: date-time
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - bookingId
+        - disputeType
+        - description
+        - status
+
+    DisputeList:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/Dispute"
+        total:
+          type: integer
+      required:
+        - data
+        - total
+
+    RaiseDisputeBody:
+      type: object
+      properties:
+        bookingId:
+          type: integer
+        disputeType:
+          type: string
+          enum: [locum_no_show, clinic_cancellation, payment_dispute, quality_complaint, other]
+        description:
+          type: string
+        evidenceUrls:
+          type: string
+      required:
+        - bookingId
+        - disputeType
+        - description
+
+    ResolveDisputeBody:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [resolved, escalated]
+        resolutionNotes:
+          type: string
+        penaltyAppliedToLocum:
+          type: integer
+        penaltyAppliedToClinic:
+          type: integer
+      required:
+        - status
+        - resolutionNotes
+
+    # NOTIFICATION SCHEMAS
+    Notification:
+      type: object
+      properties:
+        id:
+          type: integer
+        userId:
+          type: integer
+        type:
+          type: string
+        channel:
+          type: string
+        title:
+          type: string
+        content:
+          type: string
+        status:
+          type: string
+        sentAt:
+          type: string
+          format: date-time
+        readAt:
+          type: string
+          format: date-time
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - type
+        - channel
+        - title
+        - content
+        - status
+
+    NotificationList:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/Notification"
+        total:
+          type: integer
+        unreadCount:
+          type: integer
+      required:
+        - data
+        - total
+        - unreadCount
+
+    NotificationPreferences:
+      type: object
+      properties:
+        id:
+          type: integer
+        userId:
+          type: integer
+        newShiftMatch:
+          type: boolean
+        applicationUpdate:
+          type: boolean
+        bookingConfirmation:
+          type: boolean
+        paymentUpdate:
+          type: boolean
+        shiftReminder:
+          type: boolean
+        ratingReceived:
+          type: boolean
+        credentialExpiry:
+          type: boolean
+        preferWhatsapp:
+          type: boolean
+        preferSms:
+          type: boolean
+        preferEmail:
+          type: boolean
+      required:
+        - newShiftMatch
+        - applicationUpdate
+        - bookingConfirmation
+        - paymentUpdate
+        - shiftReminder
+        - ratingReceived
+        - credentialExpiry
+        - preferWhatsapp
+        - preferSms
+        - preferEmail
+
+    UpdateNotificationPreferencesBody:
+      type: object
+      properties:
+        newShiftMatch:
+          type: boolean
+        applicationUpdate:
+          type: boolean
+        bookingConfirmation:
+          type: boolean
+        paymentUpdate:
+          type: boolean
+        shiftReminder:
+          type: boolean
+        ratingReceived:
+          type: boolean
+        credentialExpiry:
+          type: boolean
+        preferWhatsapp:
+          type: boolean
+        preferSms:
+          type: boolean
+        preferEmail:
+          type: boolean
+
+    # ANALYTICS SCHEMAS
+    ClinicAnalytics:
+      type: object
+      properties:
+        totalSpend:
+          type: integer
+        totalShiftsPosted:
+          type: integer
+        totalShiftsFilled:
+          type: integer
+        fillRate:
+          type: number
+        averageTimeToFill:
+          type: number
+        spendByMonth:
+          type: array
+          items:
+            type: object
+            properties:
+              month:
+                type: string
+              spend:
+                type: integer
+              shiftsPosted:
+                type: integer
+              shiftsFilled:
+                type: integer
+            required:
+              - month
+              - spend
+              - shiftsPosted
+              - shiftsFilled
+        fillRateBySpecialty:
+          type: array
+          items:
+            type: object
+            properties:
+              specialtyName:
+                type: string
+              posted:
+                type: integer
+              filled:
+                type: integer
+              fillRate:
+                type: number
+            required:
+              - specialtyName
+              - posted
+              - filled
+              - fillRate
+        topLocums:
+          type: array
+          items:
+            type: object
+            properties:
+              locumId:
+                type: integer
+              name:
+                type: string
+              shiftsCompleted:
+                type: integer
+              averageRating:
+                type: number
+            required:
+              - locumId
+              - name
+              - shiftsCompleted
+        hardestToFill:
+          type: array
+          items:
+            type: object
+            properties:
+              specialtyName:
+                type: string
+              avgDaysToFill:
+                type: number
+            required:
+              - specialtyName
+              - avgDaysToFill
+      required:
+        - totalSpend
+        - totalShiftsPosted
+        - totalShiftsFilled
+        - fillRate
+
+    LocumAnalytics:
+      type: object
+      properties:
+        totalEarnings:
+          type: integer
+        totalShiftsCompleted:
+          type: integer
+        averageRating:
+          type: number
+        reliabilityScore:
+          type: string
+        earningsByMonth:
+          type: array
+          items:
+            type: object
+            properties:
+              month:
+                type: string
+              earnings:
+                type: integer
+              shifts:
+                type: integer
+            required:
+              - month
+              - earnings
+              - shifts
+        recentActivity:
+          type: array
+          items:
+            type: object
+            properties:
+              date:
+                type: string
+              type:
+                type: string
+              description:
+                type: string
+            required:
+              - date
+              - type
+              - description
+        upcomingShiftsCount:
+          type: integer
+        pendingApplicationsCount:
+          type: integer
+      required:
+        - totalEarnings
+        - totalShiftsCompleted
+        - averageRating
+        - reliabilityScore
+
+    PlatformSummary:
+      type: object
+      properties:
+        totalLocums:
+          type: integer
+        verifiedLocums:
+          type: integer
+        totalClinics:
+          type: integer
+        verifiedClinics:
+          type: integer
+        totalShiftsPosted:
+          type: integer
+        totalShiftsFilled:
+          type: integer
+        totalPaymentsProcessed:
+          type: integer
+        platformRevenue:
+          type: integer
+        pendingVerifications:
+          type: integer
+        openDisputes:
+          type: integer
+      required:
+        - totalLocums
+        - verifiedLocums
+        - totalClinics
+        - verifiedClinics
+        - totalShiftsPosted
+        - totalShiftsFilled
+
+    # ADMIN SCHEMAS
+    VerificationQueue:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: integer
+              type:
+                type: string
+              name:
+                type: string
+              registrationNumber:
+                type: string
+              submittedAt:
+                type: string
+                format: date-time
+              documents:
+                type: array
+                items:
+                  type: string
+            required:
+              - id
+              - type
+              - name
+              - submittedAt
+        total:
+          type: integer
+        page:
+          type: integer
+        limit:
+          type: integer
+      required:
+        - data
+        - total
+        - page
+        - limit
+
+    VerifyEntityBody:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [verified, rejected]
+        notes:
+          type: string
+      required:
+        - status
