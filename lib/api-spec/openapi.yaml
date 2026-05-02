@@ -821,6 +821,31 @@ paths:
               schema:
                 $ref: "#/components/schemas/ApplicationList"
 
+  /applications/{id}/withdraw:
+    post:
+      operationId: withdrawApplication
+      tags: [applications]
+      summary: Withdraw a pending application (locum only)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Application withdrawn
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Application"
+        "403":
+          description: Not your application or already resolved
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
   # BOOKINGS
   /bookings:
     get:

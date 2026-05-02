@@ -3295,6 +3295,90 @@ export function useListMyApplications<
 }
 
 /**
+ * @summary Withdraw a pending application (locum only)
+ */
+export const getWithdrawApplicationUrl = (id: number) => {
+  return `/api/applications/${id}/withdraw`;
+};
+
+export const withdrawApplication = async (
+  id: number,
+  options?: RequestInit,
+): Promise<Application> => {
+  return customFetch<Application>(getWithdrawApplicationUrl(id), {
+    ...options,
+    method: "POST",
+  });
+};
+
+export const getWithdrawApplicationMutationOptions = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof withdrawApplication>>,
+    TError,
+    { id: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof withdrawApplication>>,
+  TError,
+  { id: number },
+  TContext
+> => {
+  const mutationKey = ["withdrawApplication"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof withdrawApplication>>,
+    { id: number }
+  > = (props) => {
+    const { id } = props ?? {};
+
+    return withdrawApplication(id, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type WithdrawApplicationMutationResult = NonNullable<
+  Awaited<ReturnType<typeof withdrawApplication>>
+>;
+
+export type WithdrawApplicationMutationError = ErrorType<ErrorResponse>;
+
+/**
+ * @summary Withdraw a pending application (locum only)
+ */
+export const useWithdrawApplication = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof withdrawApplication>>,
+    TError,
+    { id: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof withdrawApplication>>,
+  TError,
+  { id: number },
+  TContext
+> => {
+  return useMutation(getWithdrawApplicationMutationOptions(options));
+};
+
+/**
  * @summary List bookings for the current user
  */
 export const getListBookingsUrl = (params?: ListBookingsParams) => {

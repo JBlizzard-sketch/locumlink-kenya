@@ -92,6 +92,28 @@ export default function ClinicPostShift() {
     setTemplateLoaded(tmpl.name);
   }, [searchStr, templates, form]);
 
+  // Pre-fill from ?repost= direct params (reposting an existing shift)
+  useEffect(() => {
+    const params = new URLSearchParams(searchStr);
+    if (!params.get("title") || params.get("templateId")) return; // only run for repost, not template
+    const specialtyId = Number(params.get("specialtyId") || "0");
+    const minYearsExp = Number(params.get("minYearsExperience") || "0");
+    form.reset({
+      title: params.get("title") ?? "",
+      specialtyId: specialtyId || 0,
+      shiftDate: "",
+      startTime: params.get("startTime") ?? "",
+      endTime: params.get("endTime") ?? "",
+      rate: Number(params.get("rate") || "0"),
+      urgency: (params.get("urgency") as "normal" | "urgent" | "emergency") ?? "normal",
+      positionsAvailable: Number(params.get("positionsAvailable") || "1"),
+      description: params.get("description") ?? "",
+      specificRequirements: params.get("specificRequirements") ?? "",
+      minYearsExperience: minYearsExp || undefined,
+    });
+    setTemplateLoaded("Reposted shift");
+  }, [searchStr]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const selectedSpecialtyId = form.watch("specialtyId");
   const selectedSpecialty = specialties?.data?.find(s => s.id === selectedSpecialtyId);
 

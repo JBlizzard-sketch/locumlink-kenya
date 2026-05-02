@@ -1,9 +1,10 @@
 import { Router } from "express";
 import { db } from "@workspace/db";
-import { shiftsTable, clinicsTable, specialtiesTable, locumsTable, shiftApplicationsTable } from "@workspace/db";
-import { eq, and, gte, lte, SQL, desc, asc } from "drizzle-orm";
+import { shiftsTable, clinicsTable, specialtiesTable, locumsTable, shiftApplicationsTable, notificationsTable } from "@workspace/db";
+import { eq, and, gte, lte, SQL, desc, asc, inArray } from "drizzle-orm";
 import { CreateShiftBody, UpdateShiftBody } from "@workspace/api-zod";
 import { authenticate } from "../middlewares/auth";
+import { sendToUser } from "../lib/sse";
 
 const router = Router();
 
@@ -174,8 +175,41 @@ router.patch("/shifts/:id", authenticate, async (req, res) => {
 router.delete("/shifts/:id", authenticate, async (req, res) => {
   const id = parseInt(req.params.id as string);
   if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
+  const { userId } = (req as any).user;
   try {
+    const [clinic] = await db.select().from(clinicsTable).where(eq(clinicsTable.userId, userId)).limit(1);
+    if (!clinic) { res.status(403).json({ error: "Not a clinic account" }); return; }
+
+    const [shift] = await db.select().from(shiftsTable).where(eq(shiftsTable.id, id)).limit(1);
+    if (!shift) { res.status(404).json({ error: "Shift not found" }); return; }
+    if (shift.clinicId !== clinic.id) { res.status(403).json({ error: "Not your shift" }); return; }
+    if (!["open"].includes(shift.status)) {
+      res.status(400).json({ error: "Only open shifts can be cancelled" });
+      return;
+    }
+
     await db.update(shiftsTable).set({ status: "cancelled", updatedAt: new Date() }).where(eq(shiftsTable.id, id));
+
+    // Notify all active applicants
+    const applicants = await db.select().from(shiftApplicationsTable)
+      .where(and(eq(shiftApplicationsTable.shiftId, id), inArray(shiftApplicationsTable.status, ["applied", "shortlisted"])));
+
+    for (const app of applicants) {
+      const [locum] = await db.select().from(locumsTable).where(eq(locumsTable.id, app.locumId)).limit(1);
+      if (!locum) continue;
+      await db.insert(notificationsTable).values({
+        userId: locum.userId,
+        channel: "in_app",
+        type: "shift_cancelled",
+        title: "Shift Cancelled",
+        content: `The shift "${shift.title}" on ${shift.shiftDate} has been cancelled by the clinic.`,
+      });
+      sendToUser(locum.userId, {
+        type: "shift_cancelled",
+        payload: { shiftId: shift.id, shiftTitle: shift.title },
+      });
+    }
+
     res.json({ message: "Shift cancelled" });
   } catch (err) {
     req.log.error({ err }, "Cancel shift error");

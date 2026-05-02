@@ -201,6 +201,53 @@ router.post("/applications/:id/reject", authenticate, async (req, res) => {
   }
 });
 
+router.post("/applications/:id/withdraw", authenticate, async (req, res) => {
+  const id = parseInt(req.params.id as string);
+  if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
+  const { userId } = (req as any).user;
+  try {
+    const [locum] = await db.select().from(locumsTable).where(eq(locumsTable.userId, userId)).limit(1);
+    if (!locum) { res.status(403).json({ error: "No locum profile" }); return; }
+
+    const [app] = await db.select().from(shiftApplicationsTable).where(eq(shiftApplicationsTable.id, id)).limit(1);
+    if (!app) { res.status(404).json({ error: "Application not found" }); return; }
+    if (app.locumId !== locum.id) { res.status(403).json({ error: "Not your application" }); return; }
+    if (!["applied", "shortlisted"].includes(app.status)) {
+      res.status(400).json({ error: "Only pending or shortlisted applications can be withdrawn" });
+      return;
+    }
+
+    const [updated] = await db.update(shiftApplicationsTable)
+      .set({ status: "withdrawn", updatedAt: new Date() })
+      .where(eq(shiftApplicationsTable.id, id))
+      .returning();
+
+    // Notify the clinic
+    const [shift] = await db.select().from(shiftsTable).where(eq(shiftsTable.id, app.shiftId)).limit(1);
+    if (shift) {
+      const [clinic] = await db.select().from(clinicsTable).where(eq(clinicsTable.id, shift.clinicId)).limit(1);
+      if (clinic) {
+        await db.insert(notificationsTable).values({
+          userId: clinic.userId,
+          channel: "in_app",
+          type: "application_withdrawn",
+          title: "Application Withdrawn",
+          content: `${locum.firstName} ${locum.lastName} has withdrawn their application for "${shift.title}".`,
+        });
+        sendToUser(clinic.userId, {
+          type: "application_withdrawn",
+          payload: { shiftId: shift.id, shiftTitle: shift.title, locumName: `${locum.firstName} ${locum.lastName}` },
+        });
+      }
+    }
+
+    res.json(await enrichApplication(updated));
+  } catch (err) {
+    req.log.error({ err }, "Withdraw application error");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
 router.get("/applications/my-map", authenticate, async (req, res) => {
   const { userId } = (req as any).user;
   try {

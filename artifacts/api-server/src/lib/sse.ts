@@ -36,6 +36,8 @@ export type SseEventType =
   | "application_shortlisted"
   | "application_confirmed"
   | "application_rejected"
+  | "application_withdrawn"
+  | "shift_cancelled"
   | "booking_updated"
   | "payment_released"
   | "dispute_opened"
