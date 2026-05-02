@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { db } from "@workspace/db";
-import { clinicsTable } from "@workspace/db";
-import { eq, and, SQL } from "drizzle-orm";
+import { clinicsTable, shiftsTable, shiftApplicationsTable, locumsTable, specialtiesTable } from "@workspace/db";
+import { eq, and, SQL, inArray } from "drizzle-orm";
 import { CreateClinicBody, UpdateClinicBody } from "@workspace/api-zod";
 import { authenticate } from "../middlewares/auth";
 
@@ -59,6 +59,38 @@ router.get("/clinics/me", authenticate, async (req, res) => {
     res.json(clinic);
   } catch (err) {
     req.log.error({ err }, "Get my clinic error");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+router.get("/clinics/me/applications", authenticate, async (req, res) => {
+  const { userId } = (req as any).user;
+  try {
+    const [clinic] = await db.select().from(clinicsTable).where(eq(clinicsTable.userId, userId)).limit(1);
+    if (!clinic) { res.status(404).json({ error: "Clinic not found" }); return; }
+    const shifts = await db.select({ id: shiftsTable.id, title: shiftsTable.title, shiftDate: shiftsTable.shiftDate, startTime: shiftsTable.startTime, endTime: shiftsTable.endTime, rate: shiftsTable.rate, specialtyId: shiftsTable.specialtyId })
+      .from(shiftsTable).where(eq(shiftsTable.clinicId, clinic.id));
+    if (shifts.length === 0) { res.json({ data: [], total: 0 }); return; }
+    const shiftIds = shifts.map(s => s.id);
+    const statusFilter = req.query.status as string | undefined;
+    const rawApps = await db.select().from(shiftApplicationsTable)
+      .where(statusFilter
+        ? and(inArray(shiftApplicationsTable.shiftId, shiftIds), eq(shiftApplicationsTable.status, statusFilter as any))
+        : inArray(shiftApplicationsTable.shiftId, shiftIds));
+    const shiftMap = new Map(shifts.map(s => [s.id, s]));
+    const data = await Promise.all(rawApps.map(async (app) => {
+      const [locum] = await db.select().from(locumsTable).where(eq(locumsTable.id, app.locumId)).limit(1);
+      const shift = shiftMap.get(app.shiftId);
+      let shiftWithSpecialty: any = shift;
+      if (shift?.specialtyId) {
+        const [sp] = await db.select().from(specialtiesTable).where(eq(specialtiesTable.id, shift.specialtyId)).limit(1);
+        shiftWithSpecialty = { ...shift, specialty: sp || null, clinic };
+      }
+      return { ...app, locum: locum || null, shift: shiftWithSpecialty || null };
+    }));
+    res.json({ data, total: data.length });
+  } catch (err) {
+    req.log.error({ err }, "List clinic applications error");
     res.status(500).json({ error: "Internal server error" });
   }
 });

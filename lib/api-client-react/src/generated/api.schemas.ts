@@ -631,6 +631,21 @@ export type ListClinicsParams = {
   limit?: number;
 };
 
+export type ListMyClinicApplicationsParams = {
+  status?: ListMyClinicApplicationsStatus;
+};
+
+export type ListMyClinicApplicationsStatus =
+  (typeof ListMyClinicApplicationsStatus)[keyof typeof ListMyClinicApplicationsStatus];
+
+export const ListMyClinicApplicationsStatus = {
+  applied: "applied",
+  shortlisted: "shortlisted",
+  confirmed: "confirmed",
+  rejected: "rejected",
+  withdrawn: "withdrawn",
+} as const;
+
 export type ListLocumsParams = {
   specialtyId?: number;
   verificationStatus?: string;

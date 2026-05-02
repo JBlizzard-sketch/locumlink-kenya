@@ -191,6 +191,120 @@ export const GetMyClinicResponse = zod.object({
 });
 
 /**
+ * @summary List all applications across the current clinic's shifts
+ */
+export const ListMyClinicApplicationsQueryParams = zod.object({
+  status: zod
+    .enum(["applied", "shortlisted", "confirmed", "rejected", "withdrawn"])
+    .optional(),
+});
+
+export const ListMyClinicApplicationsResponse = zod.object({
+  data: zod.array(
+    zod.object({
+      id: zod.number(),
+      shiftId: zod.number(),
+      locumId: zod.number(),
+      status: zod.string(),
+      coverMessage: zod.string().optional(),
+      matchScore: zod.string().optional(),
+      appliedAt: zod.coerce.date(),
+      locum: zod
+        .object({
+          id: zod.number(),
+          userId: zod.number().optional(),
+          firstName: zod.string(),
+          lastName: zod.string(),
+          bio: zod.string().optional(),
+          primarySpecialtyId: zod.number().optional(),
+          registrationNumber: zod.string(),
+          registrationBody: zod.string(),
+          yearsExperience: zod.number().optional(),
+          preferredRatePerShift: zod.number().optional(),
+          verificationStatus: zod.string(),
+          reliabilityScore: zod.string().optional(),
+          totalShiftsCompleted: zod.number().optional(),
+          profilePhotoUrl: zod.string().optional(),
+          isAvailableForUrgent: zod.boolean().optional(),
+          subCounty: zod.string().optional(),
+          county: zod.string().optional(),
+          certExpiryDate: zod.coerce.date().optional(),
+          createdAt: zod.coerce.date().optional(),
+          specialty: zod
+            .object({
+              id: zod.number(),
+              name: zod.string(),
+              category: zod.string(),
+              suggestedRateMin: zod.number(),
+              suggestedRateMax: zod.number(),
+              description: zod.string().optional(),
+              createdAt: zod.coerce.date().optional(),
+            })
+            .optional(),
+        })
+        .optional(),
+      shift: zod
+        .object({
+          id: zod.number(),
+          clinicId: zod.number(),
+          specialtyId: zod.number(),
+          title: zod.string(),
+          description: zod.string().optional(),
+          shiftDate: zod.string(),
+          startTime: zod.string(),
+          endTime: zod.string(),
+          rate: zod.number(),
+          positionsAvailable: zod.number().optional(),
+          positionsFilled: zod.number().optional(),
+          status: zod.string(),
+          urgency: zod.string(),
+          minYearsExperience: zod.number().optional(),
+          specificRequirements: zod.string().optional(),
+          insuranceCovered: zod.string().optional(),
+          createdAt: zod.coerce.date().optional(),
+          clinic: zod
+            .object({
+              id: zod.number(),
+              userId: zod.number().optional(),
+              name: zod.string(),
+              slug: zod.string().optional(),
+              facilityType: zod.string(),
+              address: zod.string(),
+              subCounty: zod.string(),
+              county: zod.string().optional(),
+              lat: zod.string().optional(),
+              lng: zod.string().optional(),
+              contactName: zod.string().optional(),
+              contactEmail: zod.string().optional(),
+              contactPhone: zod.string().optional(),
+              verificationStatus: zod.string(),
+              payerScore: zod.string().optional(),
+              totalShiftsPosted: zod.number().optional(),
+              totalShiftsFilled: zod.number().optional(),
+              logoUrl: zod.string().optional(),
+              bio: zod.string().optional(),
+              createdAt: zod.coerce.date().optional(),
+            })
+            .optional(),
+          specialty: zod
+            .object({
+              id: zod.number(),
+              name: zod.string(),
+              category: zod.string(),
+              suggestedRateMin: zod.number(),
+              suggestedRateMax: zod.number(),
+              description: zod.string().optional(),
+              createdAt: zod.coerce.date().optional(),
+            })
+            .optional(),
+        })
+        .optional(),
+    }),
+  ),
+  total: zod.number(),
+});
+
+/**
  * @summary Get a clinic by ID
  */
 export const GetClinicParams = zod.object({

@@ -235,6 +235,25 @@ paths:
               schema:
                 $ref: "#/components/schemas/Clinic"
 
+  /clinics/me/applications:
+    get:
+      operationId: listMyClinicApplications
+      tags: [clinics]
+      summary: List all applications across the current clinic's shifts
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [applied, shortlisted, confirmed, rejected, withdrawn]
+      responses:
+        "200":
+          description: Applications list
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApplicationList"
+
   /clinics/{id}:
     get:
       operationId: getClinic

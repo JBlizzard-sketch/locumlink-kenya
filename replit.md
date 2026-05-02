@@ -47,6 +47,7 @@ Production-grade two-sided marketplace connecting verified locum medical profess
 | 13 | GCS-backed document uploads (presigned URL flow), unread notification badge in nav, mark-all-read, admin doc viewer with clickable links |
 | 14 | Full analytics & reporting: real earningsByMonth (6 months), recentActivity feed, clinic payments scoped to clinic, topLocums table, admin revenue trend + shift volume charts, revenueByMonth in PlatformSummary (8 months of data), extended seed to 14 shifts / 8 payments |
 | 15 | Calendar & Availability overhaul: `/locums/me/availability` GET+POST routes, working "Set Weekends", "Set Weekdays", "Clear All" bulk actions, confirmed-shift calendar overlay (blue), completed-shift overlay (green), day detail panel showing booking info or availability toggle, upcoming shifts list, month stats (available days, booked shifts, upcoming count), codegen script permanently fixed to strip invalid barrel export |
+| 16 | Clinic Application Pipeline: `GET /clinics/me/applications` cross-shift endpoint with status filter, dedicated `/clinic/applications` page, status tabs (All/Applied/Shortlisted/Confirmed/Rejected) with counts, real-time search by locum name or shift, action buttons (Shortlist/Confirm/Reject) with optimistic invalidation, summary stat cards, "Applications" added to clinic sidebar nav |
 
 ## Architecture Notes
 

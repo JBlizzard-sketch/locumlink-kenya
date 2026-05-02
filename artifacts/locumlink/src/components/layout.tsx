@@ -43,9 +43,10 @@ export function Layout({ children }: { children: React.ReactNode }) {
   const clinicNav = [
     { name: "Dashboard", href: "/clinic/dashboard", icon: LayoutDashboard },
     { name: "Manage Shifts", href: "/clinic/shifts", icon: BriefcaseMedical },
+    { name: "Applications", href: "/clinic/applications", icon: ActivitySquare },
     { name: "Active Bookings", href: "/clinic/bookings", icon: CalendarDays },
     { name: "Locum Directory", href: "/clinic/locums", icon: Users },
-    { name: "Analytics", href: "/clinic/analytics", icon: ActivitySquare },
+    { name: "Analytics", href: "/clinic/analytics", icon: FileText },
     { name: "Clinic Profile", href: "/clinic/profile", icon: Settings },
   ];
 

@@ -45,6 +45,7 @@ import type {
   ListBookingsParams,
   ListClinicsParams,
   ListLocumsParams,
+  ListMyClinicApplicationsParams,
   ListNotificationsParams,
   ListPaymentsParams,
   ListShiftsParams,
@@ -885,6 +886,106 @@ export function useGetMyClinic<
   request?: SecondParameter<typeof customFetch>;
 }): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
   const queryOptions = getGetMyClinicQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary List all applications across the current clinic's shifts
+ */
+export const getListMyClinicApplicationsUrl = (
+  params?: ListMyClinicApplicationsParams,
+) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/clinics/me/applications?${stringifiedParams}`
+    : `/api/clinics/me/applications`;
+};
+
+export const listMyClinicApplications = async (
+  params?: ListMyClinicApplicationsParams,
+  options?: RequestInit,
+): Promise<ApplicationList> => {
+  return customFetch<ApplicationList>(getListMyClinicApplicationsUrl(params), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getListMyClinicApplicationsQueryKey = (
+  params?: ListMyClinicApplicationsParams,
+) => {
+  return [`/api/clinics/me/applications`, ...(params ? [params] : [])] as const;
+};
+
+export const getListMyClinicApplicationsQueryOptions = <
+  TData = Awaited<ReturnType<typeof listMyClinicApplications>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: ListMyClinicApplicationsParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listMyClinicApplications>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getListMyClinicApplicationsQueryKey(params);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof listMyClinicApplications>>
+  > = ({ signal }) =>
+    listMyClinicApplications(params, { signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof listMyClinicApplications>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListMyClinicApplicationsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listMyClinicApplications>>
+>;
+export type ListMyClinicApplicationsQueryError = ErrorType<unknown>;
+
+/**
+ * @summary List all applications across the current clinic's shifts
+ */
+
+export function useListMyClinicApplications<
+  TData = Awaited<ReturnType<typeof listMyClinicApplications>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: ListMyClinicApplicationsParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listMyClinicApplications>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListMyClinicApplicationsQueryOptions(params, options);
 
   const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
     queryKey: QueryKey;
