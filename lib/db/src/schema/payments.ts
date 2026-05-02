@@ -36,6 +36,7 @@ export const paymentsTable = pgTable("payments", {
   locumPayout: integer("locum_payout").notNull(),
   paymentMethod: paymentMethodEnum("payment_method").notNull(),
   status: paymentStatusEnum("payment_status").notNull().default("pending"),
+  mpesaCheckoutRequestId: text("mpesa_checkout_request_id"),
   mpesaTransactionId: text("mpesa_transaction_id"),
   mpesaReceiptNumber: text("mpesa_receipt_number"),
   bankReference: text("bank_reference"),

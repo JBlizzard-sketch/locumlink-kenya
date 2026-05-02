@@ -8,11 +8,14 @@ import shiftsRouter from "./shifts";
 import applicationsRouter from "./applications";
 import bookingsRouter from "./bookings";
 import paymentsRouter from "./payments";
+import mpesaRouter from "./mpesa";
 import ratingsRouter from "./ratings";
 import disputesRouter from "./disputes";
 import notificationsRouter from "./notifications";
 import analyticsRouter from "./analytics";
 import adminRouter from "./admin";
+import documentsRouter from "./documents";
+import eventsRouter from "./events";
 
 const router: IRouter = Router();
 
@@ -25,10 +28,13 @@ router.use(shiftsRouter);
 router.use(applicationsRouter);
 router.use(bookingsRouter);
 router.use(paymentsRouter);
+router.use(mpesaRouter);
 router.use(ratingsRouter);
 router.use(disputesRouter);
 router.use(notificationsRouter);
 router.use(analyticsRouter);
 router.use(adminRouter);
+router.use(documentsRouter);
+router.use(eventsRouter);
 
 export default router;
