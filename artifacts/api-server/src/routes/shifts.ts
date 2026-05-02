@@ -172,6 +172,37 @@ router.patch("/shifts/:id", authenticate, async (req, res) => {
   }
 });
 
+router.get("/shifts/my-invitations", authenticate, async (req, res) => {
+  const { userId } = (req as any).user;
+  try {
+    const [locum] = await db.select().from(locumsTable).where(eq(locumsTable.userId, userId)).limit(1);
+    if (!locum) { res.json({ data: [], total: 0 }); return; }
+
+    const inviteNotifs = await db.select()
+      .from(notificationsTable)
+      .where(and(eq(notificationsTable.userId, userId), eq(notificationsTable.type, "shift_invitation")));
+
+    const shiftIds: number[] = [];
+    for (const notif of inviteNotifs) {
+      const meta = notif.metadata as any;
+      if (meta?.shiftId && typeof meta.shiftId === "number" && !shiftIds.includes(meta.shiftId)) {
+        shiftIds.push(meta.shiftId);
+      }
+    }
+
+    if (shiftIds.length === 0) { res.json({ data: [], total: 0 }); return; }
+
+    const shifts = await db.select().from(shiftsTable)
+      .where(and(inArray(shiftsTable.id, shiftIds), eq(shiftsTable.status, "open")));
+
+    const enriched = await Promise.all(shifts.map(enrichShift));
+    res.json({ data: enriched, total: enriched.length });
+  } catch (err) {
+    req.log.error({ err }, "My invitations error");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
 router.post("/shifts/:shiftId/invite/:locumId", authenticate, async (req, res) => {
   const shiftId = parseInt(req.params.shiftId as string);
   const locumId = parseInt(req.params.locumId as string);
@@ -190,6 +221,7 @@ router.post("/shifts/:shiftId/invite/:locumId", authenticate, async (req, res) =
       type: "shift_invitation",
       title: "You've been invited to apply",
       content: `${clinic.name} has invited you to apply for "${shift.title}" on ${shift.shiftDate}.`,
+      metadata: { shiftId: shift.id, clinicName: clinic.name },
     });
     sendToUser(locum.userId, {
       type: "shift_invitation",
@@ -233,6 +265,7 @@ router.delete("/shifts/:id", authenticate, async (req, res) => {
         type: "shift_cancelled",
         title: "Shift Cancelled",
         content: `The shift "${shift.title}" on ${shift.shiftDate} has been cancelled by the clinic.`,
+        metadata: { shiftId: shift.id },
       });
       sendToUser(locum.userId, {
         type: "shift_cancelled",

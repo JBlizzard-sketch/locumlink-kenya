@@ -73,6 +73,7 @@ router.post("/shifts/:shiftId/applications", authenticate, async (req, res) => {
           type: "application_received",
           title: "New Application",
           content: `${locum.firstName} ${locum.lastName} applied for "${shift.title}"`,
+          metadata: { shiftId, locumId: locum.id },
         });
         sendToUser(clinic.userId, {
           type: "application_received",
@@ -111,6 +112,7 @@ router.post("/applications/:id/shortlist", authenticate, async (req, res) => {
         type: "application_shortlisted",
         title: "You've Been Shortlisted",
         content: `Great news — you've been shortlisted for "${shift.title}". Stand by for confirmation.`,
+        metadata: { shiftId: shift.id, applicationId: app.id },
       });
       sendToUser(locum.userId, {
         type: "application_shortlisted",
@@ -154,6 +156,7 @@ router.post("/applications/:id/confirm", authenticate, async (req, res) => {
         type: "application_confirmed",
         title: "Booking Confirmed!",
         content: `Your application for "${shift.title}" has been confirmed. Please sign the contract to proceed.`,
+        metadata: { bookingId: booking.id, shiftId: shift.id },
       });
       sendToUser(locum.userId, {
         type: "application_confirmed",
@@ -187,6 +190,7 @@ router.post("/applications/:id/reject", authenticate, async (req, res) => {
         type: "application_rejected",
         title: "Application Not Selected",
         content: `Your application for "${shift.title}" was not selected. Keep applying — more shifts open daily.`,
+        metadata: { shiftId: shift.id, applicationId: app.id },
       });
       sendToUser(locum.userId, {
         type: "application_rejected",
@@ -233,6 +237,7 @@ router.post("/applications/:id/withdraw", authenticate, async (req, res) => {
           type: "application_withdrawn",
           title: "Application Withdrawn",
           content: `${locum.firstName} ${locum.lastName} has withdrawn their application for "${shift.title}".`,
+          metadata: { shiftId: shift.id, locumId: locum.id },
         });
         sendToUser(clinic.userId, {
           type: "application_withdrawn",

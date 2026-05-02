@@ -74,6 +74,7 @@ router.post("/admin/locums/:id/verify", authenticate, requireRole("platform_admi
         type: eventType,
         title,
         content,
+        metadata: { userType: "locum" },
       });
       sendToUser(locum.userId, { type: eventType, payload: { status: parse.data.status, notes: parse.data.notes } });
     }
@@ -115,6 +116,7 @@ router.post("/admin/clinics/:id/verify", authenticate, requireRole("platform_adm
         type: eventType,
         title,
         content,
+        metadata: { userType: "clinic" },
       });
       sendToUser(clinic.userId, { type: eventType, payload: { status: parse.data.status, notes: parse.data.notes } });
     }
