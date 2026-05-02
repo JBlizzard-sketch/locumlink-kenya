@@ -2,7 +2,7 @@ import { useGetClinicAnalytics } from "@workspace/api-client-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, LineChart, Line } from "recharts";
-import { DollarSign, Download, TrendingUp, Clock, AlertCircle } from "lucide-react";
+import { DollarSign, Download, TrendingUp, Clock, AlertCircle, ActivitySquare } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 export default function ClinicAnalytics() {
@@ -154,4 +154,3 @@ export default function ClinicAnalytics() {
   );
 }
 
-import { ActivitySquare } from "lucide-react";

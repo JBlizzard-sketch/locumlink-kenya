@@ -1,9 +1,10 @@
 import { Router } from "express";
 import { db } from "@workspace/db";
-import { shiftApplicationsTable, shiftsTable, locumsTable, bookingsTable, clinicsTable, specialtiesTable } from "@workspace/db";
+import { shiftApplicationsTable, shiftsTable, locumsTable, bookingsTable, clinicsTable, specialtiesTable, usersTable, notificationsTable } from "@workspace/db";
 import { eq, and } from "drizzle-orm";
 import { ApplyToShiftBody } from "@workspace/api-zod";
 import { authenticate } from "../middlewares/auth";
+import { sendToUser } from "../lib/sse";
 
 const router = Router();
 
@@ -60,6 +61,30 @@ router.post("/shifts/:shiftId/applications", authenticate, async (req, res) => {
       locumId: locum.id,
       coverMessage: parse.data.coverMessage,
     }).returning();
+
+    // Notify the clinic that a new application arrived
+    const [shift] = await db.select().from(shiftsTable).where(eq(shiftsTable.id, shiftId)).limit(1);
+    if (shift) {
+      const [clinic] = await db.select().from(clinicsTable).where(eq(clinicsTable.id, shift.clinicId)).limit(1);
+      if (clinic) {
+        await db.insert(notificationsTable).values({
+          userId: clinic.userId,
+          channel: "in_app",
+          type: "application_received",
+          title: "New Application",
+          content: `${locum.firstName} ${locum.lastName} applied for "${shift.title}"`,
+        });
+        sendToUser(clinic.userId, {
+          type: "application_received",
+          payload: {
+            shiftId,
+            shiftTitle: shift.title,
+            locumName: `${locum.firstName} ${locum.lastName}`,
+          },
+        });
+      }
+    }
+
     res.status(201).json(await enrichApplication(application));
   } catch (err) {
     req.log.error({ err }, "Apply to shift error");
@@ -75,6 +100,24 @@ router.post("/applications/:id/shortlist", authenticate, async (req, res) => {
       .set({ status: "shortlisted", updatedAt: new Date() })
       .where(eq(shiftApplicationsTable.id, id)).returning();
     if (!app) { res.status(404).json({ error: "Application not found" }); return; }
+
+    // Notify locum they were shortlisted
+    const [locum] = await db.select().from(locumsTable).where(eq(locumsTable.id, app.locumId)).limit(1);
+    const [shift] = await db.select().from(shiftsTable).where(eq(shiftsTable.id, app.shiftId)).limit(1);
+    if (locum && shift) {
+      await db.insert(notificationsTable).values({
+        userId: locum.userId,
+        channel: "in_app",
+        type: "application_shortlisted",
+        title: "You've Been Shortlisted",
+        content: `Great news — you've been shortlisted for "${shift.title}". Stand by for confirmation.`,
+      });
+      sendToUser(locum.userId, {
+        type: "application_shortlisted",
+        payload: { shiftId: shift.id, shiftTitle: shift.title },
+      });
+    }
+
     res.json(await enrichApplication(app));
   } catch (err) {
     req.log.error({ err }, "Shortlist error");
@@ -92,7 +135,6 @@ router.post("/applications/:id/confirm", authenticate, async (req, res) => {
     if (!app) { res.status(404).json({ error: "Application not found" }); return; }
     const [shift] = await db.select().from(shiftsTable).where(eq(shiftsTable.id, app.shiftId)).limit(1);
     const rate = shift?.rate || 0;
-    const platformFee = Math.round(rate * 0.1);
     const [booking] = await db.insert(bookingsTable).values({
       shiftId: app.shiftId,
       locumId: app.locumId,
@@ -102,6 +144,23 @@ router.post("/applications/:id/confirm", authenticate, async (req, res) => {
     await db.update(shiftsTable)
       .set({ status: "filled", positionsFilled: (shift?.positionsFilled || 0) + 1, updatedAt: new Date() })
       .where(eq(shiftsTable.id, app.shiftId));
+
+    // Notify locum their application was confirmed
+    const [locum] = await db.select().from(locumsTable).where(eq(locumsTable.id, app.locumId)).limit(1);
+    if (locum && shift) {
+      await db.insert(notificationsTable).values({
+        userId: locum.userId,
+        channel: "in_app",
+        type: "application_confirmed",
+        title: "Booking Confirmed!",
+        content: `Your application for "${shift.title}" has been confirmed. Please sign the contract to proceed.`,
+      });
+      sendToUser(locum.userId, {
+        type: "application_confirmed",
+        payload: { bookingId: booking.id, shiftId: shift.id, shiftTitle: shift.title },
+      });
+    }
+
     res.status(201).json(booking);
   } catch (err) {
     req.log.error({ err }, "Confirm application error");
@@ -117,6 +176,24 @@ router.post("/applications/:id/reject", authenticate, async (req, res) => {
       .set({ status: "rejected", updatedAt: new Date() })
       .where(eq(shiftApplicationsTable.id, id)).returning();
     if (!app) { res.status(404).json({ error: "Application not found" }); return; }
+
+    // Notify locum they were rejected
+    const [locum] = await db.select().from(locumsTable).where(eq(locumsTable.id, app.locumId)).limit(1);
+    const [shift] = await db.select().from(shiftsTable).where(eq(shiftsTable.id, app.shiftId)).limit(1);
+    if (locum && shift) {
+      await db.insert(notificationsTable).values({
+        userId: locum.userId,
+        channel: "in_app",
+        type: "application_rejected",
+        title: "Application Not Selected",
+        content: `Your application for "${shift.title}" was not selected. Keep applying — more shifts open daily.`,
+      });
+      sendToUser(locum.userId, {
+        type: "application_rejected",
+        payload: { shiftId: shift.id, shiftTitle: shift.title },
+      });
+    }
+
     res.json(await enrichApplication(app));
   } catch (err) {
     req.log.error({ err }, "Reject application error");

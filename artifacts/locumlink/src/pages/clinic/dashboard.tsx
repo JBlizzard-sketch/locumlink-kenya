@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Link } from "wouter";
-import { PlusCircle, Users, ActivitySquare, TrendingUp, AlertTriangle } from "lucide-react";
+import { PlusCircle, Users, ActivitySquare, TrendingUp, AlertTriangle, DollarSign } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer } from "recharts";
 
 export default function ClinicDashboard() {
@@ -152,5 +152,3 @@ export default function ClinicDashboard() {
   );
 }
 
-// Temporary import replacement
-import { DollarSign } from "lucide-react";

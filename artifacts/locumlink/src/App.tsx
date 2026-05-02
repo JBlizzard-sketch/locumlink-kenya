@@ -4,6 +4,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider } from "@/hooks/use-auth";
 import Router from "@/router";
+import { SseWatcher } from "@/components/sse-watcher";
 
 const queryClient = new QueryClient();
 
@@ -13,6 +14,7 @@ function App() {
       <TooltipProvider>
         <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
           <AuthProvider>
+            <SseWatcher />
             <Router />
           </AuthProvider>
         </WouterRouter>

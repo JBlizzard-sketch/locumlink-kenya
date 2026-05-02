@@ -1,9 +1,10 @@
 import { Router } from "express";
 import { db } from "@workspace/db";
-import { locumsTable, clinicsTable, disputesTable } from "@workspace/db";
+import { locumsTable, clinicsTable, disputesTable, notificationsTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
 import { AdminVerifyLocumBody, AdminVerifyClinicBody, AdminResolveDisputeBody } from "@workspace/api-zod";
 import { authenticate, requireRole } from "../middlewares/auth";
+import { sendToUser } from "../lib/sse";
 
 const router = Router();
 
@@ -52,12 +53,31 @@ router.post("/admin/locums/:id/verify", authenticate, requireRole("platform_admi
     return;
   }
   try {
-    await db.update(locumsTable).set({
+    const [locum] = await db.update(locumsTable).set({
       verificationStatus: parse.data.status,
       verificationNotes: parse.data.notes,
       verifiedAt: parse.data.status === "verified" ? new Date() : null,
       updatedAt: new Date(),
-    }).where(eq(locumsTable.id, id));
+    }).where(eq(locumsTable.id, id)).returning();
+
+    if (locum) {
+      const isVerified = parse.data.status === "verified";
+      const eventType = isVerified ? "credential_verified" : "credential_rejected";
+      const title = isVerified ? "Credentials Verified ✓" : "Credentials Rejected";
+      const content = isVerified
+        ? "Your credentials have been verified. You can now apply to shifts on LocumLink."
+        : `Your credential review requires attention. Notes: ${parse.data.notes || "Please re-submit your documents."}`;
+
+      await db.insert(notificationsTable).values({
+        userId: locum.userId,
+        channel: "in_app",
+        type: eventType,
+        title,
+        content,
+      });
+      sendToUser(locum.userId, { type: eventType, payload: { status: parse.data.status, notes: parse.data.notes } });
+    }
+
     res.json({ message: `Locum ${parse.data.status}` });
   } catch (err) {
     req.log.error({ err }, "Admin verify locum error");
@@ -74,12 +94,31 @@ router.post("/admin/clinics/:id/verify", authenticate, requireRole("platform_adm
     return;
   }
   try {
-    await db.update(clinicsTable).set({
+    const [clinic] = await db.update(clinicsTable).set({
       verificationStatus: parse.data.status as any,
       verificationNotes: parse.data.notes,
       verifiedAt: parse.data.status === "verified" ? new Date() : null,
       updatedAt: new Date(),
-    }).where(eq(clinicsTable.id, id));
+    }).where(eq(clinicsTable.id, id)).returning();
+
+    if (clinic) {
+      const isVerified = parse.data.status === "verified";
+      const eventType = isVerified ? "credential_verified" : "credential_rejected";
+      const title = isVerified ? "Clinic Verified ✓" : "Clinic Verification Rejected";
+      const content = isVerified
+        ? "Your clinic has been verified. You can now post shifts and hire locums on LocumLink."
+        : `Your clinic verification was rejected. Notes: ${parse.data.notes || "Please re-submit your documents."}`;
+
+      await db.insert(notificationsTable).values({
+        userId: clinic.userId,
+        channel: "in_app",
+        type: eventType,
+        title,
+        content,
+      });
+      sendToUser(clinic.userId, { type: eventType, payload: { status: parse.data.status, notes: parse.data.notes } });
+    }
+
     res.json({ message: `Clinic ${parse.data.status}` });
   } catch (err) {
     req.log.error({ err }, "Admin verify clinic error");
@@ -105,6 +144,18 @@ router.post("/admin/disputes/:id/resolve", authenticate, requireRole("platform_a
       updatedAt: new Date(),
     }).where(eq(disputesTable.id, id)).returning();
     if (!dispute) { res.status(404).json({ error: "Dispute not found" }); return; }
+
+    // Push SSE to the locum who raised the dispute (if available)
+    if (dispute.raisedByLocumId) {
+      const [locum] = await db.select().from(locumsTable).where(eq(locumsTable.id, dispute.raisedByLocumId)).limit(1);
+      if (locum) {
+        sendToUser(locum.userId, {
+          type: "dispute_resolved",
+          payload: { disputeId: dispute.id, status: parse.data.status, notes: parse.data.resolutionNotes },
+        });
+      }
+    }
+
     res.json(dispute);
   } catch (err) {
     req.log.error({ err }, "Resolve dispute error");

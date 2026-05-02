@@ -5,280 +5,293 @@ import {
   clinicsTable,
   locumsTable,
   shiftsTable,
+  bookingsTable,
+  paymentsTable,
+  ratingsTable,
+  notificationsTable,
+  shiftApplicationsTable,
 } from "@workspace/db";
+import { eq } from "drizzle-orm";
 import bcrypt from "bcryptjs";
 
+function addDays(d: Date, n: number) { const r = new Date(d); r.setDate(r.getDate() + n); return r; }
+function subDays(d: Date, n: number) { const r = new Date(d); r.setDate(r.getDate() - n); return r; }
+function dateStr(d: Date) { return d.toISOString().split("T")[0]; }
+
 async function seed() {
-  console.log("Seeding LocumLink Kenya database...");
+  console.log("🌱 Seeding LocumLink Kenya database...");
 
-  // Specialties
-  const specialties = await db
-    .insert(specialtiesTable)
-    .values([
-      { name: "General Practice", category: "Medical", suggestedRateMin: 8000, suggestedRateMax: 15000, description: "General outpatient consultations" },
-      { name: "Anaesthesia", category: "Medical", suggestedRateMin: 20000, suggestedRateMax: 40000, description: "Anaesthetic cover for surgical lists" },
-      { name: "Paediatrics", category: "Medical", suggestedRateMin: 12000, suggestedRateMax: 22000, description: "Child health and illness" },
-      { name: "Obstetrics & Gynaecology", category: "Medical", suggestedRateMin: 15000, suggestedRateMax: 30000, description: "Maternal and women's health" },
-      { name: "General Nursing", category: "Nursing", suggestedRateMin: 3000, suggestedRateMax: 7000, description: "Ward nursing and patient care" },
-      { name: "ICU Nursing", category: "Nursing", suggestedRateMin: 5000, suggestedRateMax: 10000, description: "Intensive care unit nursing" },
-      { name: "Clinical Officer", category: "Allied Health", suggestedRateMin: 4000, suggestedRateMax: 8000, description: "Primary clinical care" },
-      { name: "Radiology", category: "Medical", suggestedRateMin: 18000, suggestedRateMax: 35000, description: "Diagnostic imaging interpretation" },
-      { name: "Physiotherapy", category: "Allied Health", suggestedRateMin: 5000, suggestedRateMax: 12000, description: "Physical rehabilitation" },
-      { name: "Dentistry", category: "Dental", suggestedRateMin: 10000, suggestedRateMax: 20000, description: "General dental procedures" },
-      { name: "Emergency Medicine", category: "Medical", suggestedRateMin: 15000, suggestedRateMax: 28000, description: "Emergency and acute care" },
-      { name: "Internal Medicine", category: "Medical", suggestedRateMin: 14000, suggestedRateMax: 25000, description: "Adult medicine consultations" },
-    ])
-    .onConflictDoNothing()
-    .returning();
+  // ─── SPECIALTIES ────────────────────────────────────────────────────────────
+  const specialties = await db.insert(specialtiesTable).values([
+    { name: "General Practice",          category: "Medical",       suggestedRateMin: 8000,  suggestedRateMax: 15000, description: "General outpatient consultations" },
+    { name: "Anaesthesia",               category: "Medical",       suggestedRateMin: 20000, suggestedRateMax: 40000, description: "Anaesthetic cover for surgical lists" },
+    { name: "Paediatrics",               category: "Medical",       suggestedRateMin: 12000, suggestedRateMax: 22000, description: "Child health and illness" },
+    { name: "Obstetrics & Gynaecology",  category: "Medical",       suggestedRateMin: 15000, suggestedRateMax: 30000, description: "Maternal and women's health" },
+    { name: "General Nursing",           category: "Nursing",       suggestedRateMin: 3000,  suggestedRateMax: 7000,  description: "Ward nursing and patient care" },
+    { name: "ICU Nursing",               category: "Nursing",       suggestedRateMin: 5000,  suggestedRateMax: 10000, description: "Intensive care unit nursing" },
+    { name: "Clinical Officer",          category: "Allied Health", suggestedRateMin: 4000,  suggestedRateMax: 8000,  description: "Primary clinical care" },
+    { name: "Radiology",                 category: "Medical",       suggestedRateMin: 18000, suggestedRateMax: 35000, description: "Diagnostic imaging interpretation" },
+    { name: "Physiotherapy",             category: "Allied Health", suggestedRateMin: 5000,  suggestedRateMax: 12000, description: "Physical rehabilitation" },
+    { name: "Dentistry",                 category: "Dental",        suggestedRateMin: 10000, suggestedRateMax: 20000, description: "General dental procedures" },
+    { name: "Emergency Medicine",        category: "Medical",       suggestedRateMin: 15000, suggestedRateMax: 28000, description: "Emergency and acute care" },
+    { name: "Internal Medicine",         category: "Medical",       suggestedRateMin: 14000, suggestedRateMax: 25000, description: "Adult medicine consultations" },
+  ]).onConflictDoNothing().returning();
 
-  console.log(`Seeded ${specialties.length} specialties`);
+  console.log(`  ✓ ${specialties.length} specialties`);
 
-  // Admin user
-  const adminHash = await bcrypt.hash("Admin@2024!", 12);
-  const [adminUser] = await db
-    .insert(usersTable)
-    .values({ email: "admin@locumlink.co.ke", phone: "+254700000000", passwordHash: adminHash, role: "platform_admin" })
-    .onConflictDoNothing()
-    .returning();
+  const gpId    = specialties.find(s => s.name === "General Practice")?.id ?? 1;
+  const nurseId = specialties.find(s => s.name === "General Nursing")?.id  ?? 5;
+  const anaesId = specialties.find(s => s.name === "Anaesthesia")?.id       ?? 2;
+  const paedId  = specialties.find(s => s.name === "Paediatrics")?.id       ?? 3;
+  const icuId   = specialties.find(s => s.name === "ICU Nursing")?.id       ?? 6;
+  const emId    = specialties.find(s => s.name === "Emergency Medicine")?.id ?? 11;
 
-  // Clinic users
+  // ─── USERS (upsert-style: insert then fetch) ─────────────────────────────────
+  const adminHash  = await bcrypt.hash("Admin@2024!",  12);
   const clinicHash = await bcrypt.hash("Clinic@2024!", 12);
-  const [clinicUser1] = await db
-    .insert(usersTable)
-    .values({ email: "hr@agakhanklinic.co.ke", phone: "+254711111111", passwordHash: clinicHash, role: "clinic_admin" })
-    .onConflictDoNothing()
-    .returning();
+  const locumHash  = await bcrypt.hash("Locum@2024!",  12);
 
-  const [clinicUser2] = await db
-    .insert(usersTable)
-    .values({ email: "admin@medplusnbi.co.ke", phone: "+254722222222", passwordHash: clinicHash, role: "clinic_admin" })
-    .onConflictDoNothing()
-    .returning();
+  async function upsertUser(email: string, phone: string, hash: string, role: string) {
+    await db.insert(usersTable).values({ email, phone, passwordHash: hash, role: role as any }).onConflictDoNothing();
+    const [u] = await db.select().from(usersTable).where(eq(usersTable.email, email)).limit(1);
+    return u;
+  }
 
-  const [clinicUser3] = await db
-    .insert(usersTable)
-    .values({ email: "info@karenmedical.co.ke", phone: "+254733333333", passwordHash: clinicHash, role: "clinic_admin" })
-    .onConflictDoNothing()
-    .returning();
+  const cu1 = await upsertUser("hr@agakhanklinic.co.ke",  "+254711111111", clinicHash, "clinic_admin");
+  const cu2 = await upsertUser("admin@medplusnbi.co.ke",  "+254722222222", clinicHash, "clinic_admin");
+  const cu3 = await upsertUser("info@karenmedical.co.ke", "+254733333333", clinicHash, "clinic_admin");
+  const lu1 = await upsertUser("dr.wanjiku@gmail.com",    "+254744444444", locumHash,  "locum");
+  const lu2 = await upsertUser("nurse.otieno@gmail.com",  "+254755555555", locumHash,  "locum");
+  const lu3 = await upsertUser("dr.mwangi@gmail.com",     "+254766666666", locumHash,  "locum");
+  const lu4 = await upsertUser("dr.kamau@gmail.com",      "+254777777777", locumHash,  "locum");
+  await upsertUser("admin@locumlink.co.ke", "+254700000000", adminHash, "platform_admin");
 
-  // Locum users
-  const locumHash = await bcrypt.hash("Locum@2024!", 12);
-  const [locumUser1] = await db
-    .insert(usersTable)
-    .values({ email: "dr.wanjiku@gmail.com", phone: "+254744444444", passwordHash: locumHash, role: "locum" })
-    .onConflictDoNothing()
-    .returning();
+  console.log("  ✓ users");
 
-  const [locumUser2] = await db
-    .insert(usersTable)
-    .values({ email: "nurse.otieno@gmail.com", phone: "+254755555555", passwordHash: locumHash, role: "locum" })
-    .onConflictDoNothing()
-    .returning();
+  // ─── CLINICS ─────────────────────────────────────────────────────────────────
+  await db.insert(clinicsTable).values({
+    userId: cu1.id, name: "Aga Khan Primary Care — Westlands", slug: "aga-khan-westlands",
+    facilityType: "specialist_clinic", address: "The Pavilion, Westlands", subCounty: "Westlands", county: "Nairobi",
+    contactName: "Dr. Fatuma Osman", contactEmail: "hr@agakhanklinic.co.ke", contactPhone: "+254711111111",
+    mohFacilityNumber: "NBI-0012345", verificationStatus: "verified", payerScore: "4.7",
+    totalShiftsPosted: 24, totalShiftsFilled: 21,
+    bio: "Multi-specialty outpatient facility serving Westlands and Parklands.",
+  }).onConflictDoNothing();
 
-  const [locumUser3] = await db
-    .insert(usersTable)
-    .values({ email: "dr.mwangi@gmail.com", phone: "+254766666666", passwordHash: locumHash, role: "locum" })
-    .onConflictDoNothing()
-    .returning();
+  await db.insert(clinicsTable).values({
+    userId: cu2.id, name: "MedPlus Clinic — Upperhill", slug: "medplus-upperhill",
+    facilityType: "general_practice", address: "Rahimtulla Tower, Upper Hill Road", subCounty: "Starehe", county: "Nairobi",
+    contactName: "Ms. Grace Njeri", contactEmail: "admin@medplusnbi.co.ke", contactPhone: "+254722222222",
+    mohFacilityNumber: "NBI-0067890", verificationStatus: "verified", payerScore: "4.2",
+    totalShiftsPosted: 12, totalShiftsFilled: 9,
+    bio: "Busy outpatient clinic in Upperhill serving corporate clients.",
+  }).onConflictDoNothing();
 
-  console.log("Users seeded");
+  await db.insert(clinicsTable).values({
+    userId: cu3.id, name: "Karen Medical Centre", slug: "karen-medical",
+    facilityType: "general_practice", address: "Karen Shopping Centre, Karen Road", subCounty: "Karen", county: "Nairobi",
+    contactName: "Dr. James Ndirangu", contactEmail: "info@karenmedical.co.ke", contactPhone: "+254733333333",
+    verificationStatus: "pending", payerScore: "0", totalShiftsPosted: 0, totalShiftsFilled: 0,
+    bio: "New multi-specialty clinic serving Karen and Langata.",
+  }).onConflictDoNothing();
 
-  const gpId = specialties.find(s => s.name === "General Practice")?.id || 1;
-  const nurseId = specialties.find(s => s.name === "General Nursing")?.id || 5;
-  const anaesId = specialties.find(s => s.name === "Anaesthesia")?.id || 2;
+  const [clinic1] = await db.select().from(clinicsTable).where(eq(clinicsTable.userId, cu1.id)).limit(1);
+  const [clinic2] = await db.select().from(clinicsTable).where(eq(clinicsTable.userId, cu2.id)).limit(1);
 
-  // Clinics
-  if (clinicUser1) {
-    await db.insert(clinicsTable).values({
-      userId: clinicUser1.id,
-      name: "Aga Khan Primary Care — Westlands",
-      slug: "aga-khan-westlands",
-      facilityType: "specialist_clinic",
-      address: "The Pavilion, Ground Floor, Westlands",
-      subCounty: "Westlands",
-      county: "Nairobi",
-      contactName: "Dr. Fatuma Osman",
-      contactEmail: "hr@agakhanklinic.co.ke",
-      contactPhone: "+254711111111",
-      mohFacilityNumber: "NBI-0012345",
-      verificationStatus: "verified",
-      payerScore: "4.7",
-      totalShiftsPosted: 24,
-      totalShiftsFilled: 21,
-      bio: "Aga Khan Primary Care — Westlands is a multi-specialty outpatient facility serving Nairobi's Westlands and Parklands neighborhoods.",
+  console.log("  ✓ clinics");
+
+  // ─── LOCUMS ──────────────────────────────────────────────────────────────────
+  await db.insert(locumsTable).values({
+    userId: lu1.id, firstName: "Grace", lastName: "Wanjiku",
+    bio: "GP with 8 years of outpatient and emergency experience. Available weekends across Nairobi.",
+    primarySpecialtyId: gpId, registrationNumber: "KMPDC/12345/2016", registrationBody: "KMPDC",
+    yearsExperience: 8, mpesaNumber: "+254744444444", preferredRatePerShift: 12000,
+    verificationStatus: "verified", reliabilityScore: "4.8", totalShiftsCompleted: 34,
+    isAvailableForUrgent: true, subCounty: "Kilimani", county: "Nairobi",
+  }).onConflictDoNothing();
+
+  await db.insert(locumsTable).values({
+    userId: lu2.id, firstName: "Patrick", lastName: "Otieno",
+    bio: "ICU-trained nurse with 5 years experience. Available evenings and nights.",
+    primarySpecialtyId: nurseId, registrationNumber: "NCK/78901/2019", registrationBody: "NCK",
+    yearsExperience: 5, mpesaNumber: "+254755555555", preferredRatePerShift: 5000,
+    verificationStatus: "verified", reliabilityScore: "4.5", totalShiftsCompleted: 18,
+    isAvailableForUrgent: false, subCounty: "Embakasi", county: "Nairobi",
+  }).onConflictDoNothing();
+
+  await db.insert(locumsTable).values({
+    userId: lu3.id, firstName: "Samuel", lastName: "Mwangi",
+    bio: "Anaesthetist with 12 years experience. Elective and emergency surgical lists. KNH trained.",
+    primarySpecialtyId: anaesId, registrationNumber: "KMPDC/56789/2012", registrationBody: "KMPDC",
+    yearsExperience: 12, mpesaNumber: "+254766666666", preferredRatePerShift: 28000,
+    verificationStatus: "pending", reliabilityScore: "0", totalShiftsCompleted: 0,
+    isAvailableForUrgent: false, subCounty: "Lavington", county: "Nairobi",
+  }).onConflictDoNothing();
+
+  await db.insert(locumsTable).values({
+    userId: lu4.id, firstName: "Esther", lastName: "Kamau",
+    bio: "Paediatrician with 6 years experience in busy public and private hospitals.",
+    primarySpecialtyId: paedId, registrationNumber: "KMPDC/99012/2018", registrationBody: "KMPDC",
+    yearsExperience: 6, mpesaNumber: "+254777777777", preferredRatePerShift: 16000,
+    verificationStatus: "verified", reliabilityScore: "4.7", totalShiftsCompleted: 22,
+    isAvailableForUrgent: true, subCounty: "Kileleshwa", county: "Nairobi",
+  }).onConflictDoNothing();
+
+  const [locum1] = await db.select().from(locumsTable).where(eq(locumsTable.userId, lu1.id)).limit(1);
+  const [locum2] = await db.select().from(locumsTable).where(eq(locumsTable.userId, lu2.id)).limit(1);
+
+  console.log("  ✓ locums");
+
+  if (!clinic1) {
+    console.log("  ⚠ No clinic1 — shifts/bookings skipped (already seeded?)");
+    console.log("\n✅ Seed complete!");
+    return;
+  }
+
+  const today = new Date();
+
+  // ─── SHIFTS ──────────────────────────────────────────────────────────────────
+  const shiftRows = await db.insert(shiftsTable).values([
+    // Future open shifts
+    { clinicId: clinic1.id, specialtyId: gpId,    title: "Saturday GP Cover — Westlands",        description: "Busy Saturday outpatient session. 30–40 patients. EPIC EMR in use.", shiftDate: dateStr(addDays(today, 2)),  startTime: "08:00", endTime: "14:00", rate: 12000, positionsAvailable: 1, urgency: "normal",    status: "open", minYearsExperience: 3 },
+    { clinicId: clinic1.id, specialtyId: nurseId,  title: "Night Shift Nurse — General Ward",      description: "Night nursing cover for 20-bed general ward. IV line management required.", shiftDate: dateStr(addDays(today, 4)),  startTime: "19:00", endTime: "07:00", rate: 5500,  positionsAvailable: 2, urgency: "urgent",    status: "open", minYearsExperience: 2 },
+    { clinicId: clinic1.id, specialtyId: anaesId,  title: "Emergency: Anaesthetist Needed",         description: "Surgical list: 2 laparotomies + 1 C-section. Full anaesthetic workup required.", shiftDate: dateStr(addDays(today, 7)),  startTime: "07:00", endTime: "17:00", rate: 30000, positionsAvailable: 1, urgency: "emergency", status: "open", minYearsExperience: 5, specificRequirements: "Obstetric anaesthesia experience required" },
+    { clinicId: clinic2?.id ?? clinic1.id, specialtyId: paedId,   title: "Paediatrics Weekend Clinic",           description: "Saturday paediatric OPD. High volume. Bring your stethoscope!", shiftDate: dateStr(addDays(today, 9)),  startTime: "09:00", endTime: "15:00", rate: 15000, positionsAvailable: 1, urgency: "normal",    status: "open", minYearsExperience: 4 },
+    { clinicId: clinic2?.id ?? clinic1.id, specialtyId: icuId,    title: "ICU Nurse — Overnight Cover",          description: "3-bed ICU overnight nursing. Ventilator-competent nurses preferred.", shiftDate: dateStr(addDays(today, 5)),  startTime: "20:00", endTime: "08:00", rate: 8500,  positionsAvailable: 1, urgency: "urgent",    status: "open", minYearsExperience: 3 },
+    { clinicId: clinic2?.id ?? clinic1.id, specialtyId: emId,     title: "Emergency Physician — Public Holiday", description: "Emergency cover for the public holiday weekend. Fast-paced environment.", shiftDate: dateStr(addDays(today, 14)), startTime: "08:00", endTime: "20:00", rate: 22000, positionsAvailable: 1, urgency: "normal",    status: "open", minYearsExperience: 5 },
+
+    // Historical completed shifts (for analytics data)
+    { clinicId: clinic1.id, specialtyId: gpId,    title: "GP Cover — March Weekend",     description: "March weekend outpatient cover.", shiftDate: dateStr(subDays(today, 60)), startTime: "08:00", endTime: "14:00", rate: 12000, positionsAvailable: 1, urgency: "normal", status: "completed", minYearsExperience: 3 },
+    { clinicId: clinic1.id, specialtyId: gpId,    title: "GP Cover — February",          description: "February weekend cover.", shiftDate: dateStr(subDays(today, 90)), startTime: "08:00", endTime: "14:00", rate: 11000, positionsAvailable: 1, urgency: "normal", status: "completed", minYearsExperience: 3 },
+    { clinicId: clinic1.id, specialtyId: nurseId,  title: "Night Nurse — January",        description: "January night nursing.", shiftDate: dateStr(subDays(today, 120)), startTime: "19:00", endTime: "07:00", rate: 5000, positionsAvailable: 1, urgency: "normal", status: "completed", minYearsExperience: 2 },
+    { clinicId: clinic2?.id ?? clinic1.id, specialtyId: gpId, title: "GP Cover — April",  description: "April cover.", shiftDate: dateStr(subDays(today, 30)), startTime: "09:00", endTime: "15:00", rate: 13000, positionsAvailable: 1, urgency: "normal", status: "completed", minYearsExperience: 3 },
+  ]).onConflictDoNothing().returning();
+
+  console.log(`  ✓ ${shiftRows.length} shifts`);
+
+  if (!locum1 || shiftRows.length < 7) {
+    console.log("\n✅ Seed complete (partial — no historical bookings)");
+    return;
+  }
+
+  // ─── HISTORICAL BOOKINGS + PAYMENTS + RATINGS ────────────────────────────────
+  // Shift 7 (index 6) = 60 days ago, completed
+  const histShift1 = shiftRows[6];
+  const histShift2 = shiftRows[7];
+  const histShift3 = shiftRows[8];
+  const histShift4 = shiftRows[9];
+
+  const [bk1] = await db.insert(bookingsTable).values({
+    shiftId: histShift1.id, locumId: locum1.id,
+    status: "completed",
+    contractSignedByLocumAt: subDays(today, 61), contractSignedByClinicAt: subDays(today, 61),
+    checkedInAt: subDays(today, 60), completedAt: subDays(today, 60),
+  }).onConflictDoNothing().returning();
+
+  const [bk2] = await db.insert(bookingsTable).values({
+    shiftId: histShift2.id, locumId: locum1.id,
+    status: "completed",
+    contractSignedByLocumAt: subDays(today, 91), contractSignedByClinicAt: subDays(today, 91),
+    checkedInAt: subDays(today, 90), completedAt: subDays(today, 90),
+  }).onConflictDoNothing().returning();
+
+  const [bk3] = await db.insert(bookingsTable).values({
+    shiftId: histShift3.id, locumId: locum2.id,
+    status: "completed",
+    contractSignedByLocumAt: subDays(today, 121), contractSignedByClinicAt: subDays(today, 121),
+    checkedInAt: subDays(today, 120), completedAt: subDays(today, 120),
+  }).onConflictDoNothing().returning();
+
+  const [bk4] = await db.insert(bookingsTable).values({
+    shiftId: histShift4.id, locumId: locum1.id,
+    status: "completed",
+    contractSignedByLocumAt: subDays(today, 31), contractSignedByClinicAt: subDays(today, 31),
+    checkedInAt: subDays(today, 30), completedAt: subDays(today, 30),
+  }).onConflictDoNothing().returning();
+
+  // A current confirmed booking for the demo locum
+  const futureShift = shiftRows[0];
+  const [bk5] = await db.insert(bookingsTable).values({
+    shiftId: futureShift.id, locumId: locum1.id,
+    status: "confirmed",
+  }).onConflictDoNothing().returning();
+
+  console.log("  ✓ bookings");
+
+  // Payments for completed bookings
+  const bookingPaymentPairs = [
+    { bk: bk1, rate: 12000, date: subDays(today, 59) },
+    { bk: bk2, rate: 11000, date: subDays(today, 89) },
+    { bk: bk3, rate: 5000,  date: subDays(today, 119) },
+    { bk: bk4, rate: 13000, date: subDays(today, 29) },
+  ];
+
+  for (const { bk, rate, date } of bookingPaymentPairs) {
+    if (!bk) continue;
+    const platformFee = Math.round(rate * 0.1);
+    const locumPayout = rate - platformFee;
+    await db.insert(paymentsTable).values({
+      bookingId: bk.id,
+      grossAmount: rate,
+      platformFee,
+      locumPayout,
+      status: "completed",
+      paymentMethod: "mpesa",
+      paidAt: date,
     }).onConflictDoNothing();
   }
 
-  if (clinicUser2) {
-    await db.insert(clinicsTable).values({
-      userId: clinicUser2.id,
-      name: "MedPlus Clinic — Upperhill",
-      slug: "medplus-upperhill",
-      facilityType: "general_practice",
-      address: "Rahimtulla Tower, Upper Hill Road",
-      subCounty: "Starehe",
-      county: "Nairobi",
-      contactName: "Ms. Grace Njeri",
-      contactEmail: "admin@medplusnbi.co.ke",
-      contactPhone: "+254722222222",
-      mohFacilityNumber: "NBI-0067890",
-      verificationStatus: "verified",
-      payerScore: "4.2",
-      totalShiftsPosted: 12,
-      totalShiftsFilled: 9,
-      bio: "MedPlus Clinic is a busy outpatient clinic in Upperhill serving corporate clients and Nairobi CBD workers.",
+  console.log("  ✓ payments");
+
+  // Ratings for completed bookings
+  const ratingPairs = [
+    { bk: bk1, score: 5, comment: "Dr. Wanjiku was exceptional — punctual, thorough, and the patients loved her." },
+    { bk: bk2, score: 5, comment: "Outstanding as always. Highly recommended for any GP cover shifts." },
+    { bk: bk3, score: 4, comment: "Patrick was professional and competent throughout the night shift." },
+    { bk: bk4, score: 5, comment: "Excellent consultation quality and very good patient rapport." },
+  ];
+
+  for (const { bk, score, comment } of ratingPairs) {
+    if (!bk) continue;
+    await db.insert(ratingsTable).values({
+      bookingId: bk.id, raterType: "clinic", overallScore: score, comment,
     }).onConflictDoNothing();
   }
 
-  if (clinicUser3) {
-    await db.insert(clinicsTable).values({
-      userId: clinicUser3.id,
-      name: "Karen Medical Centre",
-      slug: "karen-medical",
-      facilityType: "general_practice",
-      address: "Karen Shopping Centre, Karen Road",
-      subCounty: "Karen",
-      county: "Nairobi",
-      contactName: "Dr. James Ndirangu",
-      contactEmail: "info@karenmedical.co.ke",
-      contactPhone: "+254733333333",
-      verificationStatus: "pending",
-      payerScore: "0",
-      totalShiftsPosted: 0,
-      totalShiftsFilled: 0,
-      bio: "Karen Medical Centre is a new multi-specialty clinic serving the Karen and Langata areas.",
-    }).onConflictDoNothing();
-  }
+  console.log("  ✓ ratings");
 
-  console.log("Clinics seeded");
-
-  // Locums
-  if (locumUser1) {
-    await db.insert(locumsTable).values({
-      userId: locumUser1.id,
-      firstName: "Dr. Grace",
-      lastName: "Wanjiku",
-      bio: "GP with 8 years of experience in outpatient and emergency care. Available for Saturday and Sunday shifts across Nairobi.",
-      primarySpecialtyId: gpId,
-      registrationNumber: "KMPDC/12345/2016",
-      registrationBody: "KMPDC",
-      yearsExperience: 8,
-      mpesaNumber: "+254744444444",
-      preferredRatePerShift: 12000,
-      verificationStatus: "verified",
-      reliabilityScore: "4.8",
-      totalShiftsCompleted: 34,
-      isAvailableForUrgent: true,
-      subCounty: "Kilimani",
-      county: "Nairobi",
-    }).onConflictDoNothing();
-  }
-
-  if (locumUser2) {
-    await db.insert(locumsTable).values({
-      userId: locumUser2.id,
-      firstName: "Nurse",
-      lastName: "Patrick Otieno",
-      bio: "ICU-trained nurse with 5 years experience. Available for evening and night shifts.",
-      primarySpecialtyId: nurseId,
-      registrationNumber: "NCK/78901/2019",
-      registrationBody: "NCK",
-      yearsExperience: 5,
-      mpesaNumber: "+254755555555",
-      preferredRatePerShift: 5000,
-      verificationStatus: "verified",
-      reliabilityScore: "4.5",
-      totalShiftsCompleted: 18,
-      isAvailableForUrgent: false,
-      subCounty: "Embakasi",
-      county: "Nairobi",
-    }).onConflictDoNothing();
-  }
-
-  if (locumUser3) {
-    await db.insert(locumsTable).values({
-      userId: locumUser3.id,
-      firstName: "Dr. Samuel",
-      lastName: "Mwangi",
-      bio: "Anaesthetist with 12 years experience. Handles elective and emergency surgical lists. KNH trained.",
-      primarySpecialtyId: anaesId,
-      registrationNumber: "KMPDC/56789/2012",
-      registrationBody: "KMPDC",
-      yearsExperience: 12,
-      mpesaNumber: "+254766666666",
-      preferredRatePerShift: 28000,
-      verificationStatus: "pending",
-      reliabilityScore: "0",
-      totalShiftsCompleted: 0,
-      isAvailableForUrgent: false,
-      subCounty: "Lavington",
-      county: "Nairobi",
-    }).onConflictDoNothing();
-  }
-
-  console.log("Locums seeded");
-
-  // Shifts
-  const [clinic1] = await db.select().from(clinicsTable).limit(1);
-  if (clinic1) {
-    const today = new Date();
-    const tomorrow = new Date(today); tomorrow.setDate(today.getDate() + 1);
-    const dayAfter = new Date(today); dayAfter.setDate(today.getDate() + 3);
-    const nextWeek = new Date(today); nextWeek.setDate(today.getDate() + 7);
-
-    await db.insert(shiftsTable).values([
-      {
-        clinicId: clinic1.id,
-        specialtyId: gpId,
-        title: "Saturday GP Cover — Westlands",
-        description: "Busy Saturday morning outpatient session. Expected 30–40 patients. EPIC EMR system in use.",
-        shiftDate: tomorrow.toISOString().split("T")[0],
-        startTime: "08:00",
-        endTime: "14:00",
-        rate: 12000,
-        positionsAvailable: 1,
-        urgency: "normal",
-        status: "open",
-        minYearsExperience: 3,
-      },
-      {
-        clinicId: clinic1.id,
-        specialtyId: nurseId,
-        title: "Night Shift Nurse — General Ward",
-        description: "Night nursing cover for 20-bed general ward. Must be comfortable with IV line management and vitals monitoring.",
-        shiftDate: dayAfter.toISOString().split("T")[0],
-        startTime: "19:00",
-        endTime: "07:00",
-        rate: 5500,
-        positionsAvailable: 2,
-        urgency: "urgent",
-        status: "open",
-        minYearsExperience: 2,
-      },
-      {
-        clinicId: clinic1.id,
-        specialtyId: anaesId,
-        title: "Emergency: Anaesthetist Needed — Sunday",
-        description: "Surgical list scheduled including 2 laparotomies and 1 C-section. Full anaesthetic workup required.",
-        shiftDate: nextWeek.toISOString().split("T")[0],
-        startTime: "07:00",
-        endTime: "17:00",
-        rate: 30000,
-        positionsAvailable: 1,
-        urgency: "emergency",
-        status: "open",
-        minYearsExperience: 5,
-        specificRequirements: "Must have experience with obstetric anaesthesia",
-      },
+  // ─── NOTIFICATIONS ───────────────────────────────────────────────────────────
+  if (lu1) {
+    await db.insert(notificationsTable).values([
+      { userId: lu1.id, channel: "in_app", type: "booking_confirmed", title: "Booking Confirmed", content: "Your booking for 'Saturday GP Cover — Westlands' has been confirmed. Please sign the contract.", status: "sent" },
+      { userId: lu1.id, channel: "in_app", type: "payment_released",  title: "Payment Released",  content: "KES 10,800 has been sent to your M-Pesa for the March weekend shift.", status: "read" },
+      { userId: lu1.id, channel: "in_app", type: "rating_received",   title: "New Rating",        content: "You received a 5-star rating from Aga Khan Primary Care.", status: "read" },
     ]).onConflictDoNothing();
   }
 
-  console.log("Shifts seeded");
-  console.log("\nSeed complete!");
+  if (cu1) {
+    await db.insert(notificationsTable).values([
+      { userId: cu1.id, channel: "in_app", type: "application_received", title: "New Application", content: "Dr. Grace Wanjiku has applied for 'Saturday GP Cover — Westlands'.", status: "sent" },
+    ]).onConflictDoNothing();
+  }
+
+  console.log("  ✓ notifications");
+
+  // ─── APPLICATIONS (open shifts) ──────────────────────────────────────────────
+  if (locum1 && shiftRows[1]) {
+    await db.insert(shiftApplicationsTable).values({
+      shiftId: shiftRows[1].id, locumId: locum1.id,
+      coverMessage: "I have 8 years of GP experience and am comfortable with night ward work.",
+    }).onConflictDoNothing();
+  }
+
+  console.log("  ✓ applications");
+
+  console.log("\n✅ Seed complete!");
   console.log("\nDemo credentials:");
-  console.log("  Admin:  admin@locumlink.co.ke / Admin@2024!");
+  console.log("  Admin:  admin@locumlink.co.ke  / Admin@2024!");
   console.log("  Clinic: hr@agakhanklinic.co.ke / Clinic@2024!");
-  console.log("  Locum:  dr.wanjiku@gmail.com / Locum@2024!");
+  console.log("  Locum:  dr.wanjiku@gmail.com   / Locum@2024!");
 }
 
 seed().catch(console.error).finally(() => process.exit(0));
