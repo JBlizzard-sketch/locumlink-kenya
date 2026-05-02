@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { db } from "@workspace/db";
-import { ratingsTable, bookingsTable, locumsTable } from "@workspace/db";
-import { eq } from "drizzle-orm";
+import { ratingsTable, bookingsTable, shiftsTable } from "@workspace/db";
+import { eq, inArray, and } from "drizzle-orm";
 import { SubmitRatingBody } from "@workspace/api-zod";
 import { authenticate } from "../middlewares/auth";
 
@@ -16,6 +16,13 @@ router.post("/bookings/:bookingId/rating", authenticate, async (req, res) => {
     return;
   }
   try {
+    const existing = await db.select().from(ratingsTable)
+      .where(and(eq(ratingsTable.bookingId, bookingId), eq(ratingsTable.raterType, parse.data.raterType as any)))
+      .limit(1);
+    if (existing.length > 0) {
+      res.status(409).json({ error: "Rating already submitted for this booking" });
+      return;
+    }
     const [rating] = await db.insert(ratingsTable).values({
       bookingId,
       raterType: parse.data.raterType as any,
@@ -66,7 +73,18 @@ router.get("/clinics/:id/ratings", async (req, res) => {
   const id = parseInt(req.params.id as string);
   if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
   try {
-    const data = await db.select().from(ratingsTable).where(eq(ratingsTable.raterType, "locum")).limit(20);
+    const clinicBookings = await db
+      .select({ id: bookingsTable.id })
+      .from(bookingsTable)
+      .innerJoin(shiftsTable, eq(bookingsTable.shiftId, shiftsTable.id))
+      .where(eq(shiftsTable.clinicId, id));
+    const bookingIds = clinicBookings.map(b => b.id);
+    if (bookingIds.length === 0) {
+      res.json({ data: [], total: 0, averageScore: 0 });
+      return;
+    }
+    const data = await db.select().from(ratingsTable)
+      .where(and(inArray(ratingsTable.bookingId, bookingIds), eq(ratingsTable.raterType, "locum")));
     const avg = data.length > 0 ? data.reduce((s, r) => s + r.overallScore, 0) / data.length : 0;
     res.json({ data, total: data.length, averageScore: avg });
   } catch (err) {

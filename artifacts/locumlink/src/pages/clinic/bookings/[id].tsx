@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useGetBooking, getGetBookingQueryKey, useCompleteBooking, useSignContract, useSubmitRating, useRaiseDispute } from "@workspace/api-client-react";
+import { useGetBooking, getGetBookingQueryKey, useCompleteBooking, useSignContract, useSubmitRating, useRaiseDispute, useGetBookingRatings, getGetBookingRatingsQueryKey } from "@workspace/api-client-react";
 import { useRoute, Link } from "wouter";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -44,6 +44,11 @@ export default function ClinicBookingDetail() {
   const raiseDispute = useRaiseDispute();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+
+  const { data: existingRatings } = useGetBookingRatings(bookingId, {
+    query: { enabled: !!bookingId, queryKey: getGetBookingRatingsQueryKey(bookingId) }
+  });
+  const clinicHasRated = existingRatings?.data?.some((r: any) => r.raterType === "clinic") ?? false;
 
   const [ratingScore, setRatingScore] = useState(5);
   const [ratingComment, setRatingComment] = useState("");
@@ -233,41 +238,46 @@ export default function ClinicBookingDetail() {
                   <div className="flex items-center justify-center gap-2 text-sm text-green-700 font-medium p-3 bg-green-50 rounded-lg border border-green-200">
                     <CheckCircle2 className="h-5 w-5" /> Shift Verified & Paid
                   </div>
-                  {/* Rate the locum */}
-                  <Dialog>
-                    <DialogTrigger asChild>
-                      <Button variant="outline" className="w-full gap-2">
-                        <Star className="h-4 w-4" /> Rate the Locum
-                      </Button>
-                    </DialogTrigger>
-                    <DialogContent>
-                      <DialogHeader>
-                        <DialogTitle>Rate Dr. {booking.locum?.firstName} {booking.locum?.lastName}</DialogTitle>
-                        <DialogDescription>Your rating improves the matching algorithm and helps other clinics.</DialogDescription>
-                      </DialogHeader>
-                      <div className="space-y-4 py-4">
-                        <div className="flex flex-col items-center gap-2">
-                          <p className="text-sm font-medium">Overall Score</p>
-                          <StarRating value={ratingScore} onChange={setRatingScore} />
-                          <p className="text-xs text-muted-foreground">{ratingScore} out of 5</p>
-                        </div>
-                        <div className="space-y-2">
-                          <label className="text-sm font-medium">Written Feedback (Optional)</label>
-                          <Textarea
-                            value={ratingComment}
-                            onChange={(e) => setRatingComment(e.target.value)}
-                            placeholder="Was the locum punctual, professional, and competent?"
-                            className="h-24"
-                          />
-                        </div>
-                      </div>
-                      <DialogFooter>
-                        <Button onClick={handleRating} disabled={submitRating.isPending}>
-                          {submitRating.isPending ? "Submitting..." : "Submit Rating"}
+                  {clinicHasRated ? (
+                    <div className="flex items-center justify-center gap-2 text-sm text-amber-700 font-medium p-3 bg-amber-50 rounded-lg border border-amber-200">
+                      <Star className="h-4 w-4 fill-amber-500 text-amber-500" /> Locum Rated — Thank you!
+                    </div>
+                  ) : (
+                    <Dialog>
+                      <DialogTrigger asChild>
+                        <Button variant="outline" className="w-full gap-2">
+                          <Star className="h-4 w-4" /> Rate the Locum
                         </Button>
-                      </DialogFooter>
-                    </DialogContent>
-                  </Dialog>
+                      </DialogTrigger>
+                      <DialogContent>
+                        <DialogHeader>
+                          <DialogTitle>Rate Dr. {booking.locum?.firstName} {booking.locum?.lastName}</DialogTitle>
+                          <DialogDescription>Your rating improves the matching algorithm and helps other clinics.</DialogDescription>
+                        </DialogHeader>
+                        <div className="space-y-4 py-4">
+                          <div className="flex flex-col items-center gap-2">
+                            <p className="text-sm font-medium">Overall Score</p>
+                            <StarRating value={ratingScore} onChange={setRatingScore} />
+                            <p className="text-xs text-muted-foreground">{ratingScore} out of 5</p>
+                          </div>
+                          <div className="space-y-2">
+                            <label className="text-sm font-medium">Written Feedback (Optional)</label>
+                            <Textarea
+                              value={ratingComment}
+                              onChange={(e) => setRatingComment(e.target.value)}
+                              placeholder="Was the locum punctual, professional, and competent?"
+                              className="h-24"
+                            />
+                          </div>
+                        </div>
+                        <DialogFooter>
+                          <Button onClick={handleRating} disabled={submitRating.isPending}>
+                            {submitRating.isPending ? "Submitting..." : "Submit Rating"}
+                          </Button>
+                        </DialogFooter>
+                      </DialogContent>
+                    </Dialog>
+                  )}
                 </>
               )}
 

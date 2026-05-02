@@ -1,5 +1,5 @@
 import { useRoute } from "wouter";
-import { useGetShift, getGetShiftQueryKey, useApplyToShift, useListMatchedShifts } from "@workspace/api-client-react";
+import { useGetShift, getGetShiftQueryKey, useApplyToShift, useListMatchedShifts, useGetClinicRatings, getGetClinicRatingsQueryKey } from "@workspace/api-client-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -103,6 +103,13 @@ export default function LocumShiftDetail() {
   });
   const { data: matchedData } = useListMatchedShifts();
   const { data: appMapData } = useMyApplicationsMap();
+
+  const clinicId = (shift as any)?.clinicId ?? (shift as any)?.clinic?.id;
+  const { data: clinicRatings } = useGetClinicRatings(clinicId ?? 0, {
+    query: { enabled: !!clinicId, queryKey: getGetClinicRatingsQueryKey(clinicId ?? 0) },
+  });
+  const clinicAvgRating = (clinicRatings as any)?.averageScore ?? 0;
+  const clinicRatingCount = (clinicRatings as any)?.total ?? 0;
 
   const applyToShift = useApplyToShift();
   const { toast } = useToast();
@@ -344,7 +351,18 @@ export default function LocumShiftDetail() {
                     {shift.clinic?.verificationStatus === "verified" ? "Verified" : "Pending"}
                   </span>
                 </div>
-                {shift.clinic?.payerScore && Number(shift.clinic.payerScore) > 0 && (
+                {clinicAvgRating > 0 && (
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Locum rating</span>
+                    <span className="font-medium flex items-center gap-1">
+                      {[1,2,3,4,5].map(s => (
+                        <Star key={s} className={`h-3 w-3 ${s <= Math.round(clinicAvgRating) ? "fill-amber-400 text-amber-400" : "text-muted-foreground/30"}`} />
+                      ))}
+                      <span className="ml-1 text-xs text-muted-foreground">({clinicRatingCount})</span>
+                    </span>
+                  </div>
+                )}
+                {!clinicAvgRating && shift.clinic?.payerScore && Number(shift.clinic.payerScore) > 0 && (
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Payer score</span>
                     <span className="font-medium flex items-center gap-1">

@@ -139,7 +139,7 @@ export default function ClinicLocumProfile() {
 
   const avgRating =
     ratings.length > 0
-      ? ratings.reduce((sum: number, r: any) => sum + (r.rating ?? 0), 0) / ratings.length
+      ? ratings.reduce((sum: number, r: any) => sum + (r.overallScore ?? 0), 0) / ratings.length
       : null;
 
   if (isLoading) {
