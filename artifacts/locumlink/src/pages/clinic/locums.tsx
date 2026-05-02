@@ -123,18 +123,25 @@ export default function ClinicLocumsDirectory() {
                 )}
                 
               </CardContent>
-              <CardFooter className="p-6 pt-0 flex items-center justify-between border-t mt-auto">
+              <CardFooter className="p-6 pt-0 flex items-center justify-between border-t mt-auto gap-2">
                 <div>
                   <p className="text-xs text-muted-foreground">Preferred Rate</p>
                   <p className="font-bold text-foreground">
                     {locum.preferredRatePerShift ? formatCurrency(locum.preferredRatePerShift) : 'Negotiable'}
                   </p>
                 </div>
-                <Link href={`/clinic/shifts/new?specialtyId=${locum.primarySpecialtyId}`}>
-                  <Button variant="outline" size="sm" className="group-hover:bg-primary group-hover:text-primary-foreground">
-                    Invite to Shift
-                  </Button>
-                </Link>
+                <div className="flex gap-2">
+                  <Link href={`/clinic/locums/${locum.id}`}>
+                    <Button variant="outline" size="sm">
+                      View Profile
+                    </Button>
+                  </Link>
+                  <Link href={`/clinic/shifts/new?specialtyId=${locum.primarySpecialtyId}`}>
+                    <Button size="sm" className="group-hover:bg-primary group-hover:text-primary-foreground">
+                      Post Shift
+                    </Button>
+                  </Link>
+                </div>
               </CardFooter>
             </Card>
           ))}

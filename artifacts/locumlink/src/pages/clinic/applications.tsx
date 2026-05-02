@@ -257,9 +257,12 @@ export default function ClinicApplications() {
                     </Avatar>
                     <div className="min-w-0 flex-1">
                       <div className="flex flex-wrap items-center gap-2 mb-0.5">
-                        <span className="font-semibold">
+                        <Link
+                          href={`/clinic/locums/${app.locum?.id}`}
+                          className="font-semibold hover:text-primary hover:underline transition-colors"
+                        >
                           {app.locum?.firstName} {app.locum?.lastName}
-                        </span>
+                        </Link>
                         <Badge
                           variant="outline"
                           className={`text-xs ${STATUS_STYLES[app.status as AppStatus] ?? ""}`}

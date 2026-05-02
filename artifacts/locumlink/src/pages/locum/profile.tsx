@@ -1,9 +1,9 @@
 import { useGetMyLocum, useUpdateLocum, useListSpecialties } from "@workspace/api-client-react";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Progress } from "@/components/ui/progress";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -12,7 +12,19 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useToast } from "@/hooks/use-toast";
 import { Switch } from "@/components/ui/switch";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useEffect, useRef } from "react";
+import { Badge } from "@/components/ui/badge";
+import { useEffect, useRef, useMemo } from "react";
+import { Link } from "wouter";
+import {
+  CheckCircle2,
+  Circle,
+  ShieldCheck,
+  AlertCircle,
+  User,
+  FileText,
+  Star,
+  Zap,
+} from "lucide-react";
 
 const profileSchema = z.object({
   firstName: z.string().min(2, "First name required"),
@@ -27,6 +39,20 @@ const profileSchema = z.object({
 });
 
 type ProfileFormValues = z.infer<typeof profileSchema>;
+
+interface CheckItem {
+  label: string;
+  done: boolean;
+  href?: string;
+  icon: React.ElementType;
+}
+
+function strengthLabel(score: number) {
+  if (score >= 90) return { text: "Complete", color: "text-green-600", bg: "bg-green-100" };
+  if (score >= 65) return { text: "Strong", color: "text-blue-600", bg: "bg-blue-100" };
+  if (score >= 35) return { text: "Getting There", color: "text-amber-600", bg: "bg-amber-100" };
+  return { text: "Starter", color: "text-muted-foreground", bg: "bg-muted" };
+}
 
 export default function LocumProfile() {
   const { data: profile, isLoading } = useGetMyLocum();
@@ -56,15 +82,40 @@ export default function LocumProfile() {
         firstName: profile.firstName || "",
         lastName: profile.lastName || "",
         bio: profile.bio || "",
-        primarySpecialtyId: profile.primarySpecialtyId,
+        primarySpecialtyId: profile.primarySpecialtyId ?? undefined,
         yearsExperience: profile.yearsExperience || 0,
         preferredRatePerShift: profile.preferredRatePerShift || 0,
+        mpesaNumber: (profile as any).mpesaNumber || "",
         subCounty: profile.subCounty || "",
         isAvailableForUrgent: profile.isAvailableForUrgent || false,
       });
       initialized.current = true;
     }
   }, [profile, form]);
+
+  const completionItems: CheckItem[] = useMemo(() => {
+    if (!profile) return [];
+    return [
+      { label: "First & last name", done: !!(profile.firstName && profile.lastName), icon: User },
+      { label: "Professional bio", done: !!profile.bio?.trim(), icon: FileText },
+      { label: "Primary specialty", done: !!profile.primarySpecialtyId, icon: Star },
+      { label: "Years of experience", done: (profile.yearsExperience ?? 0) > 0, icon: Zap },
+      { label: "Preferred rate set", done: !!(profile.preferredRatePerShift && profile.preferredRatePerShift > 0), icon: Zap },
+      { label: "M-Pesa number", done: !!(profile as any).mpesaNumber?.trim(), icon: Zap },
+      { label: "Sub-county / location", done: !!profile.subCounty?.trim(), icon: User },
+      { label: "Profile photo", done: !!(profile as any).profilePhotoUrl, icon: User },
+      { label: "ID document uploaded", done: !!(profile as any).idDocumentUrl, href: "/locum/documents", icon: FileText },
+      { label: "Practicing certificate", done: !!(profile as any).practicingCertUrl, href: "/locum/documents", icon: FileText },
+      { label: "Registration certificate", done: !!(profile as any).registrationCertUrl, href: "/locum/documents", icon: FileText },
+    ];
+  }, [profile]);
+
+  const completionScore = useMemo(() => {
+    const weights = [10, 15, 15, 10, 5, 10, 5, 10, 10, 5, 5];
+    return completionItems.reduce((acc, item, i) => acc + (item.done ? weights[i] : 0), 0);
+  }, [completionItems]);
+
+  const strength = strengthLabel(completionScore);
 
   const onSubmit = async (data: ProfileFormValues) => {
     try {
@@ -79,7 +130,8 @@ export default function LocumProfile() {
     return (
       <div className="max-w-3xl mx-auto space-y-6">
         <Skeleton className="h-10 w-48 mb-6" />
-        <Skeleton className="h-[600px] w-full rounded-xl" />
+        <Skeleton className="h-48 w-full rounded-xl" />
+        <Skeleton className="h-[400px] w-full rounded-xl" />
       </div>
     );
   }
@@ -88,13 +140,93 @@ export default function LocumProfile() {
     <div className="space-y-6 max-w-3xl mx-auto">
       <div>
         <h1 className="text-3xl font-bold font-serif tracking-tight">My Profile</h1>
-        <p className="text-muted-foreground mt-1">Manage your professional identity and preferences.</p>
+        <p className="text-muted-foreground mt-1">Your profile is your storefront — clinics see this when reviewing your applications.</p>
       </div>
 
+      {/* Profile Completion Widget */}
+      <Card className="border-l-4 border-l-primary overflow-hidden">
+        <CardHeader className="pb-3">
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-base flex items-center gap-2">
+              Profile Completeness
+            </CardTitle>
+            <Badge className={`${strength.bg} ${strength.color} border-0 font-semibold`}>
+              {strength.text}
+            </Badge>
+          </div>
+          <div className="space-y-1.5">
+            <Progress value={completionScore} className="h-2" />
+            <p className="text-xs text-muted-foreground">{completionScore}% complete — fill in the items below to strengthen your profile</p>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="grid sm:grid-cols-2 gap-x-6 gap-y-1.5">
+            {completionItems.map((item) => (
+              <div key={item.label} className="flex items-center gap-2 text-sm">
+                {item.done ? (
+                  <CheckCircle2 className="h-4 w-4 text-green-500 shrink-0" />
+                ) : (
+                  <Circle className="h-4 w-4 text-muted-foreground/40 shrink-0" />
+                )}
+                <span className={item.done ? "text-foreground" : "text-muted-foreground"}>
+                  {item.label}
+                </span>
+                {!item.done && item.href && (
+                  <Link href={item.href} className="text-xs text-primary hover:underline ml-auto shrink-0">
+                    Upload →
+                  </Link>
+                )}
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Verification Status */}
+      {profile && (
+        <Card className={`border ${
+          profile.verificationStatus === "verified"
+            ? "border-green-200 bg-green-50/20"
+            : profile.verificationStatus === "rejected"
+              ? "border-red-200 bg-red-50/20"
+              : "border-amber-200 bg-amber-50/20"
+        }`}>
+          <CardContent className="p-4 flex items-center gap-3">
+            {profile.verificationStatus === "verified" ? (
+              <ShieldCheck className="h-6 w-6 text-green-600 shrink-0" />
+            ) : (
+              <AlertCircle className="h-6 w-6 text-amber-600 shrink-0" />
+            )}
+            <div>
+              <p className="font-semibold text-sm">
+                {profile.verificationStatus === "verified"
+                  ? "Your credentials are verified"
+                  : profile.verificationStatus === "rejected"
+                    ? "Verification requires attention"
+                    : "Verification pending review"}
+              </p>
+              <p className="text-xs text-muted-foreground">
+                {profile.verificationStatus === "verified"
+                  ? "You appear as verified on all shift listings and clinic searches."
+                  : profile.verificationStatus === "rejected"
+                    ? (profile as any).verificationNotes || "Please re-upload your documents."
+                    : "Our team is reviewing your uploaded documents. This usually takes 1–2 business days."}
+              </p>
+            </div>
+            {profile.verificationStatus !== "verified" && (
+              <Button variant="outline" size="sm" className="ml-auto shrink-0" asChild>
+                <Link href="/locum/documents">View Documents</Link>
+              </Button>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Profile Form */}
       <Card>
         <CardHeader>
           <CardTitle>Personal Information</CardTitle>
-          <CardDescription>Update your details as seen by clinics.</CardDescription>
+          <CardDescription>Update your details as seen by clinics reviewing your applications.</CardDescription>
         </CardHeader>
         <CardContent>
           <Form {...form}>
@@ -130,7 +262,13 @@ export default function LocumProfile() {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Professional Bio</FormLabel>
-                    <FormControl><Textarea className="h-24" placeholder="Tell clinics about your experience..." {...field} /></FormControl>
+                    <FormControl>
+                      <Textarea
+                        className="h-24 resize-none"
+                        placeholder="Tell clinics about your experience, specialisations, and approach to patient care..."
+                        {...field}
+                      />
+                    </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -143,8 +281,8 @@ export default function LocumProfile() {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Primary Specialty</FormLabel>
-                      <Select 
-                        onValueChange={(val) => field.onChange(Number(val))} 
+                      <Select
+                        onValueChange={(val) => field.onChange(Number(val))}
                         value={field.value?.toString() || ""}
                       >
                         <FormControl>
@@ -153,7 +291,7 @@ export default function LocumProfile() {
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          {specialties?.data?.map(s => (
+                          {specialties?.data?.map((s) => (
                             <SelectItem key={s.id} value={s.id.toString()}>{s.name}</SelectItem>
                           ))}
                         </SelectContent>
@@ -168,7 +306,7 @@ export default function LocumProfile() {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Years of Experience</FormLabel>
-                      <FormControl><Input type="number" {...field} /></FormControl>
+                      <FormControl><Input type="number" min={0} {...field} /></FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
@@ -182,23 +320,35 @@ export default function LocumProfile() {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Preferred Rate (KES/shift)</FormLabel>
-                      <FormControl><Input type="number" {...field} /></FormControl>
+                      <FormControl><Input type="number" min={0} {...field} /></FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
                 <FormField
                   control={form.control}
-                  name="subCounty"
+                  name="mpesaNumber"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Location (Sub-County)</FormLabel>
-                      <FormControl><Input placeholder="e.g. Westlands" {...field} /></FormControl>
+                      <FormLabel>M-Pesa Number</FormLabel>
+                      <FormControl><Input placeholder="e.g. 0712345678" {...field} /></FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
               </div>
+
+              <FormField
+                control={form.control}
+                name="subCounty"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Location (Sub-County)</FormLabel>
+                    <FormControl><Input placeholder="e.g. Westlands, Langata, Embakasi…" {...field} /></FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
               <FormField
                 control={form.control}
@@ -208,21 +358,18 @@ export default function LocumProfile() {
                     <div className="space-y-0.5">
                       <FormLabel className="text-base">Available for Urgent Shifts</FormLabel>
                       <CardDescription>
-                        Turn on to receive SMS alerts for emergency shifts matching your specialty.
+                        Receive SMS alerts for emergency shifts matching your specialty.
                       </CardDescription>
                     </div>
                     <FormControl>
-                      <Switch
-                        checked={field.value}
-                        onCheckedChange={field.onChange}
-                      />
+                      <Switch checked={field.value} onCheckedChange={field.onChange} />
                     </FormControl>
                   </FormItem>
                 )}
               />
 
-              <Button type="submit" disabled={updateLocum.isPending}>
-                {updateLocum.isPending ? "Saving..." : "Save Changes"}
+              <Button type="submit" disabled={updateLocum.isPending} className="w-full sm:w-auto">
+                {updateLocum.isPending ? "Saving…" : "Save Changes"}
               </Button>
             </form>
           </Form>

@@ -26,6 +26,7 @@ import ClinicMatchedLocums from "@/pages/clinic/matched-locums";
 
 // Clinic Pages
 import ClinicApplications from "@/pages/clinic/applications";
+import ClinicLocumProfile from "@/pages/clinic/locums/[id]";
 import ClinicDashboard from "@/pages/clinic/dashboard";
 import ClinicShifts from "@/pages/clinic/shifts";
 import ClinicPostShift from "@/pages/clinic/shifts/new";
@@ -79,6 +80,7 @@ export default function Router() {
       <Route path="/clinic/locums">{() => <ProtectedRoute allowedRoles={["clinic_admin", "clinic_hr"]}><Layout><ClinicLocumsDirectory /></Layout></ProtectedRoute>}</Route>
       <Route path="/clinic/shifts/:id/matched">{() => <ProtectedRoute allowedRoles={["clinic_admin", "clinic_hr"]}><Layout><ClinicMatchedLocums /></Layout></ProtectedRoute>}</Route>
       <Route path="/clinic/applications">{() => <ProtectedRoute allowedRoles={["clinic_admin", "clinic_hr"]}><Layout><ClinicApplications /></Layout></ProtectedRoute>}</Route>
+      <Route path="/clinic/locums/:id">{() => <ProtectedRoute allowedRoles={["clinic_admin", "clinic_hr"]}><Layout><ClinicLocumProfile /></Layout></ProtectedRoute>}</Route>
 
       {/* Admin Routes */}
       <Route path="/admin/dashboard">{() => <ProtectedRoute allowedRoles={["platform_admin"]}><Layout><AdminDashboard /></Layout></ProtectedRoute>}</Route>
