@@ -31,9 +31,9 @@ router.post("/storage/uploads/request-url", authenticate, async (req, res) => {
 });
 
 /** GET /api/storage/objects/:objectPath+ — serve uploaded private objects */
-router.get("/storage/objects/:objectPath+", authenticate, async (req, res) => {
+router.get("/storage/objects/*path", authenticate, async (req, res) => {
   try {
-    const rawPath = "/" + req.params.objectPath;
+    const rawPath = "/" + (req.params as any).path;
     const file = await storage.getObjectEntityFile(rawPath);
     const response = await storage.downloadObject(file);
     const ct = response.headers.get("content-type") || "application/octet-stream";

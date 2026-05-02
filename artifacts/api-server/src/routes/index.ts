@@ -16,6 +16,8 @@ import analyticsRouter from "./analytics";
 import adminRouter from "./admin";
 import documentsRouter from "./documents";
 import eventsRouter from "./events";
+import contractsRouter from "./contracts";
+import matchingRouter from "./matching";
 
 const router: IRouter = Router();
 
@@ -36,5 +38,7 @@ router.use(analyticsRouter);
 router.use(adminRouter);
 router.use(documentsRouter);
 router.use(eventsRouter);
+router.use(contractsRouter);
+router.use(matchingRouter);
 
 export default router;

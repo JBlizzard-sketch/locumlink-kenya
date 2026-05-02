@@ -48,6 +48,7 @@ export const bookingsTable = pgTable("bookings", {
     () => shiftApplicationsTable.id,
   ),
   status: bookingStatusEnum("status").notNull().default("confirmed"),
+  contractRef: text("contract_ref"),
   contractUrl: text("contract_url"),
   contractSignedByLocumAt: timestamp("contract_signed_by_locum_at"),
   contractSignedByClinicAt: timestamp("contract_signed_by_clinic_at"),
