@@ -201,6 +201,25 @@ router.post("/applications/:id/reject", authenticate, async (req, res) => {
   }
 });
 
+router.get("/applications/my-map", authenticate, async (req, res) => {
+  const { userId } = (req as any).user;
+  try {
+    const [locum] = await db.select().from(locumsTable).where(eq(locumsTable.userId, userId)).limit(1);
+    if (!locum) { res.json({ data: {} }); return; }
+    const raw = await db.select({
+      id: shiftApplicationsTable.id,
+      shiftId: shiftApplicationsTable.shiftId,
+      status: shiftApplicationsTable.status,
+    }).from(shiftApplicationsTable).where(eq(shiftApplicationsTable.locumId, locum.id));
+    const data: Record<number, { id: number; status: string }> = {};
+    for (const app of raw) { data[app.shiftId] = { id: app.id, status: app.status }; }
+    res.json({ data });
+  } catch (err) {
+    req.log.error({ err }, "My applications map error");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
 router.get("/applications/my", authenticate, async (req, res) => {
   const { userId } = (req as any).user;
   try {

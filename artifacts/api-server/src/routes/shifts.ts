@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { db } from "@workspace/db";
-import { shiftsTable, clinicsTable, specialtiesTable, bookingsTable } from "@workspace/db";
-import { eq, and, gte, lte, SQL } from "drizzle-orm";
+import { shiftsTable, clinicsTable, specialtiesTable, locumsTable, shiftApplicationsTable } from "@workspace/db";
+import { eq, and, gte, lte, SQL, desc, asc } from "drizzle-orm";
 import { CreateShiftBody, UpdateShiftBody } from "@workspace/api-zod";
 import { authenticate } from "../middlewares/auth";
 
@@ -11,6 +11,18 @@ async function enrichShift(shift: any) {
   const [clinic] = await db.select().from(clinicsTable).where(eq(clinicsTable.id, shift.clinicId)).limit(1);
   const [specialty] = await db.select().from(specialtiesTable).where(eq(specialtiesTable.id, shift.specialtyId)).limit(1);
   return { ...shift, clinic: clinic || null, specialty: specialty || null };
+}
+
+function computeMatchScore(shift: any, locum: any, clinicSubCounty?: string | null): number {
+  let score = 0;
+  if (locum.primarySpecialtyId && shift.specialtyId === locum.primarySpecialtyId) score += 40;
+  const minExp = shift.minYearsExperience || 0;
+  if (locum.yearsExperience >= minExp) score += 20;
+  if (clinicSubCounty && locum.subCounty && clinicSubCounty === locum.subCounty) score += 20;
+  const preferred = locum.preferredRatePerShift;
+  if (preferred && shift.rate >= preferred * 0.8) score += 10;
+  if (locum.isAvailableForUrgent && (shift.urgency === "urgent" || shift.urgency === "emergency")) score += 10;
+  return Math.min(score, 100);
 }
 
 router.get("/shifts", async (req, res) => {
@@ -26,12 +38,37 @@ router.get("/shifts", async (req, res) => {
     if (req.query.date) conditions.push(eq(shiftsTable.shiftDate, req.query.date as string));
     if (req.query.dateFrom) conditions.push(gte(shiftsTable.shiftDate, req.query.dateFrom as string));
     if (req.query.dateTo) conditions.push(lte(shiftsTable.shiftDate, req.query.dateTo as string));
-    const query = db.select().from(shiftsTable);
-    const raw = conditions.length > 0
-      ? await query.where(and(...conditions)).limit(limit).offset(offset)
-      : await query.where(eq(shiftsTable.status, "open")).limit(limit).offset(offset);
+    if (req.query.minRate) conditions.push(gte(shiftsTable.rate, parseInt(req.query.minRate as string)));
+    if (req.query.maxRate) conditions.push(lte(shiftsTable.rate, parseInt(req.query.maxRate as string)));
+
+    const baseConditions: SQL[] = conditions.length > 0 ? conditions : [eq(shiftsTable.status, "open")];
+    if (conditions.length === 0) {
+      const today = new Date().toISOString().split("T")[0];
+      baseConditions.push(gte(shiftsTable.shiftDate, today));
+    }
+
+    const sortBy = req.query.sortBy as string;
+    let orderExpr;
+    if (sortBy === "rate_desc") orderExpr = desc(shiftsTable.rate);
+    else if (sortBy === "rate_asc") orderExpr = asc(shiftsTable.rate);
+    else if (sortBy === "date_desc") orderExpr = desc(shiftsTable.shiftDate);
+    else orderExpr = asc(shiftsTable.shiftDate);
+
+    const raw = await db.select().from(shiftsTable)
+      .where(and(...baseConditions))
+      .orderBy(orderExpr)
+      .limit(limit).offset(offset);
     const data = await Promise.all(raw.map(enrichShift));
-    res.json({ data, total: data.length, page, limit });
+
+    let total = data.length + offset;
+    if (data.length === limit) total = offset + limit + 1;
+
+    const subCounty = req.query.subCounty as string | undefined;
+    const filtered = subCounty
+      ? data.filter((s: any) => s.clinic?.subCounty === subCounty)
+      : data;
+
+    res.json({ data: filtered, total: filtered.length + offset, page, limit });
   } catch (err) {
     req.log.error({ err }, "List shifts error");
     res.status(500).json({ error: "Internal server error" });
@@ -73,11 +110,23 @@ router.get("/shifts/upcoming", authenticate, async (req, res) => {
 });
 
 router.get("/shifts/matched", authenticate, async (req, res) => {
+  const { userId } = (req as any).user;
   try {
     const today = new Date().toISOString().split("T")[0];
-    const raw = await db.select().from(shiftsTable).where(and(eq(shiftsTable.status, "open"), gte(shiftsTable.shiftDate, today))).limit(20);
-    const data = await Promise.all(raw.map(enrichShift));
-    res.json({ data, total: data.length, page: 1, limit: 20 });
+    const raw = await db.select().from(shiftsTable)
+      .where(and(eq(shiftsTable.status, "open"), gte(shiftsTable.shiftDate, today)))
+      .orderBy(asc(shiftsTable.shiftDate))
+      .limit(50);
+    const enriched = await Promise.all(raw.map(enrichShift));
+
+    const [locum] = await db.select().from(locumsTable).where(eq(locumsTable.userId, userId)).limit(1);
+
+    const data = enriched.map((shift: any) => {
+      const score = locum ? computeMatchScore(shift, locum, shift.clinic?.subCounty) : 0;
+      return { ...shift, matchScore: score };
+    }).sort((a: any, b: any) => b.matchScore - a.matchScore);
+
+    res.json({ data, total: data.length, page: 1, limit: 50 });
   } catch (err) {
     req.log.error({ err }, "Matched shifts error");
     res.status(500).json({ error: "Internal server error" });
@@ -91,7 +140,10 @@ router.get("/shifts/:id", async (req, res) => {
     const [shift] = await db.select().from(shiftsTable).where(eq(shiftsTable.id, id)).limit(1);
     if (!shift) { res.status(404).json({ error: "Shift not found" }); return; }
     const enriched = await enrichShift(shift);
-    res.json({ ...enriched, applications: [], applicationCount: 0 });
+    const apps = await db.select({ id: shiftApplicationsTable.id })
+      .from(shiftApplicationsTable)
+      .where(eq(shiftApplicationsTable.shiftId, id));
+    res.json({ ...enriched, applications: [], applicationCount: apps.length });
   } catch (err) {
     req.log.error({ err }, "Get shift error");
     res.status(500).json({ error: "Internal server error" });

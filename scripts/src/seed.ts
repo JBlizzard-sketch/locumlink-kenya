@@ -151,6 +151,16 @@ async function seed() {
   const today = new Date();
 
   // ─── SHIFTS ──────────────────────────────────────────────────────────────────
+  const existingShifts = await db.select().from(shiftsTable).where(eq(shiftsTable.clinicId, clinic1.id)).limit(1);
+  if (existingShifts.length > 0) {
+    console.log("  ✓ shifts (already seeded — skipping)");
+    console.log("\n✅ Seed complete!\n\nDemo credentials:");
+    console.log("  Admin:  admin@locumlink.co.ke  / Admin@2024!");
+    console.log("  Clinic: hr@agakhanklinic.co.ke / Clinic@2024!");
+    console.log("  Locum:  dr.wanjiku@gmail.com   / Locum@2024!");
+    return;
+  }
+
   const shiftRows = await db.insert(shiftsTable).values([
     // Future open shifts
     { clinicId: clinic1.id, specialtyId: gpId,    title: "Saturday GP Cover — Westlands",        description: "Busy Saturday outpatient session. 30–40 patients. EPIC EMR in use.", shiftDate: dateStr(addDays(today, 2)),  startTime: "08:00", endTime: "14:00", rate: 12000, positionsAvailable: 1, urgency: "normal",    status: "open", minYearsExperience: 3 },
