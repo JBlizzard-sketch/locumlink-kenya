@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ChevronLeft, MapPin, Calendar, Clock, Star, AlertCircle, CheckCircle2, XCircle, Sparkles } from "lucide-react";
+import { ChevronLeft, MapPin, Calendar, Clock, Star, AlertCircle, CheckCircle2, XCircle, Sparkles, Zap } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 import { useQueryClient } from "@tanstack/react-query";
@@ -60,9 +60,16 @@ export default function ClinicShiftDetail() {
 
   return (
     <div className="max-w-5xl mx-auto space-y-6">
-      <Link href="/clinic/shifts" className="inline-flex items-center text-sm font-medium text-muted-foreground hover:text-primary transition-colors">
-        <ChevronLeft className="h-4 w-4 mr-1" /> Back to shifts
-      </Link>
+      <div className="flex items-center justify-between flex-wrap gap-3">
+        <Link href="/clinic/shifts" className="inline-flex items-center text-sm font-medium text-muted-foreground hover:text-primary transition-colors">
+          <ChevronLeft className="h-4 w-4 mr-1" /> Back to shifts
+        </Link>
+        <Link href={`/clinic/shifts/${shiftId}/matched`}>
+          <Button variant="outline" size="sm" className="gap-1.5">
+            <Zap className="h-4 w-4 text-primary" /> Find AI-Matched Locums
+          </Button>
+        </Link>
+      </div>
 
       <Card className="border-t-4 border-t-primary overflow-hidden">
         <CardHeader className="bg-muted/10 pb-6 border-b">

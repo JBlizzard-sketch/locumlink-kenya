@@ -15,6 +15,7 @@ export type SseEventType =
   | "credential_rejected"
   | "shift_reminder"
   | "shift_cancelled"
+  | "shift_invitation"
   | "ping";
 
 export type SseHandler = (payload: Record<string, unknown>) => void;
@@ -50,7 +51,7 @@ export function useSSE(onEvent?: (type: SseEventType, payload: Record<string, un
       "application_rejected", "application_withdrawn", "booking_updated",
       "payment_released", "dispute_opened", "dispute_resolved",
       "credential_verified", "credential_rejected", "shift_reminder",
-      "shift_cancelled",
+      "shift_cancelled", "shift_invitation",
     ];
 
     eventTypes.forEach((type) => {

@@ -55,6 +55,10 @@ const EVENT_MESSAGES: Record<SseEventType, (payload: Record<string, unknown>) =>
     title: "Shift Cancelled",
     description: `The shift "${p.shiftTitle ?? ""}" has been cancelled by the clinic.`,
   }),
+  shift_invitation: (p) => ({
+    title: "You've Been Invited to Apply",
+    description: `${p.clinicName ?? "A clinic"} invited you to apply for "${p.shiftTitle ?? "a shift"}".`,
+  }),
   ping: () => ({ title: "", description: "" }),
 };
 
@@ -70,6 +74,7 @@ const QUERY_KEYS_TO_INVALIDATE: Partial<Record<SseEventType, string[][]>> = {
   credential_verified:     [["getMyLocum"], ["getMyClinic"], ["listNotifications"]],
   credential_rejected:     [["getMyLocum"], ["getMyClinic"], ["listNotifications"]],
   shift_cancelled:         [["listMyApplications"], ["listMyBookings"], ["listNotifications"]],
+  shift_invitation:        [["listNotifications"]],
 };
 
 export function SseWatcher() {

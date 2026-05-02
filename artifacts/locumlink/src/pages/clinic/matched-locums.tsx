@@ -1,11 +1,13 @@
+import { useState } from "react";
 import { useRoute, Link } from "wouter";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Progress } from "@/components/ui/progress";
-import { ChevronLeft, User, Star, Zap, MapPin, ArrowRight } from "lucide-react";
+import { ChevronLeft, User, Star, Zap, MapPin, ArrowRight, CheckCircle2, Send } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
 const BASE_URL = import.meta.env.BASE_URL as string;
 
@@ -53,7 +55,7 @@ function ScoreBar({ label, value, max }: { label: string; value: number; max: nu
   );
 }
 
-function MatchCard({ locum }: { locum: MatchedLocum }) {
+function MatchCard({ locum, shiftId, invited, onInvite }: { locum: MatchedLocum; shiftId: number; invited: boolean; onInvite: (locumId: number) => void }) {
   const formatKes = (n: number) => `KES ${n.toLocaleString("en-KE")}`;
   const score = locum.matchScore;
   const scoreColor = score >= 80 ? "text-emerald-600" : score >= 60 ? "text-amber-600" : "text-red-500";
@@ -119,18 +121,54 @@ function MatchCard({ locum }: { locum: MatchedLocum }) {
           ))}
         </div>
 
-        <Button className="w-full" size="sm">
-          <ArrowRight className="h-4 w-4 mr-2" /> Invite to Apply
-        </Button>
+        {invited ? (
+          <div className="flex items-center justify-center gap-2 text-sm text-emerald-700 font-medium py-1.5">
+            <CheckCircle2 className="h-4 w-4" /> Invitation sent
+          </div>
+        ) : (
+          <Button className="w-full" size="sm" onClick={() => onInvite(locum.id)}>
+            <Send className="h-4 w-4 mr-2" /> Invite to Apply
+          </Button>
+        )}
       </CardContent>
     </Card>
   );
+}
+
+function useInviteLocum(shiftId: number) {
+  const token = localStorage.getItem("token");
+  return useMutation({
+    mutationFn: async (locumId: number) => {
+      const res = await fetch(`${BASE_URL}api/shifts/${shiftId}/invite/${locumId}`, {
+        method: "POST",
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw err;
+      }
+      return res.json();
+    },
+  });
 }
 
 export default function ClinicMatchedLocums() {
   const [, params] = useRoute("/clinic/shifts/:id/matched");
   const shiftId = Number(params?.id);
   const { data, isLoading } = useMatchedLocums(shiftId);
+  const inviteMutation = useInviteLocum(shiftId);
+  const { toast } = useToast();
+  const [invitedIds, setInvitedIds] = useState<Set<number>>(new Set());
+
+  const handleInvite = async (locumId: number) => {
+    try {
+      await inviteMutation.mutateAsync(locumId);
+      setInvitedIds(prev => new Set(prev).add(locumId));
+      toast({ title: "Invitation sent", description: "The locum has been notified and can now apply." });
+    } catch {
+      toast({ title: "Could not send invitation", variant: "destructive" });
+    }
+  };
 
   return (
     <div className="space-y-6 max-w-5xl mx-auto">
@@ -173,7 +211,15 @@ export default function ClinicMatchedLocums() {
             </div>
           </div>
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {data.data.map(locum => <MatchCard key={locum.id} locum={locum} />)}
+            {data.data.map(locum => (
+              <MatchCard
+                key={locum.id}
+                locum={locum}
+                shiftId={shiftId}
+                invited={invitedIds.has(locum.id)}
+                onInvite={handleInvite}
+              />
+            ))}
           </div>
         </>
       )}

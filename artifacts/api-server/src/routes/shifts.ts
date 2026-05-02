@@ -172,6 +172,36 @@ router.patch("/shifts/:id", authenticate, async (req, res) => {
   }
 });
 
+router.post("/shifts/:shiftId/invite/:locumId", authenticate, async (req, res) => {
+  const shiftId = parseInt(req.params.shiftId);
+  const locumId = parseInt(req.params.locumId);
+  if (isNaN(shiftId) || isNaN(locumId)) { res.status(400).json({ error: "Invalid id" }); return; }
+  const { userId } = (req as any).user;
+  try {
+    const [clinic] = await db.select().from(clinicsTable).where(eq(clinicsTable.userId, userId)).limit(1);
+    if (!clinic) { res.status(403).json({ error: "Not a clinic account" }); return; }
+    const [shift] = await db.select().from(shiftsTable).where(and(eq(shiftsTable.id, shiftId), eq(shiftsTable.clinicId, clinic.id))).limit(1);
+    if (!shift) { res.status(404).json({ error: "Shift not found or not yours" }); return; }
+    const [locum] = await db.select().from(locumsTable).where(eq(locumsTable.id, locumId)).limit(1);
+    if (!locum) { res.status(404).json({ error: "Locum not found" }); return; }
+    await db.insert(notificationsTable).values({
+      userId: locum.userId,
+      channel: "in_app",
+      type: "shift_invitation",
+      title: "You've been invited to apply",
+      content: `${clinic.name} has invited you to apply for "${shift.title}" on ${shift.shiftDate}.`,
+    });
+    sendToUser(locum.userId, {
+      type: "shift_invitation",
+      payload: { shiftId: shift.id, shiftTitle: shift.title, clinicName: clinic.name },
+    });
+    res.json({ message: "Invitation sent" });
+  } catch (err) {
+    req.log.error({ err }, "Invite locum error");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
 router.delete("/shifts/:id", authenticate, async (req, res) => {
   const id = parseInt(req.params.id as string);
   if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }

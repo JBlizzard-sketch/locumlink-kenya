@@ -414,7 +414,7 @@ export default function LocumCalendar() {
                     )}
                   </div>
                   <Button variant="outline" size="sm" className="w-full" asChild>
-                    <Link href={`/bookings/${dayBooking.id}`}>
+                    <Link href={`/locum/bookings/${dayBooking.id}`}>
                       View Booking Details <ChevronRight className="h-3 w-3 ml-1" />
                     </Link>
                   </Button>
@@ -558,7 +558,7 @@ export default function LocumCalendar() {
                       </Badge>
                     </div>
                     <Button variant="ghost" size="sm" asChild>
-                      <Link href={`/bookings/${b.id}`}>
+                      <Link href={`/locum/bookings/${b.id}`}>
                         <ChevronRight className="h-4 w-4" />
                       </Link>
                     </Button>
