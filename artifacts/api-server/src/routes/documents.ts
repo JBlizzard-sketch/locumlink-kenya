@@ -50,15 +50,44 @@ router.get("/storage/objects/*path", authenticate, async (req, res) => {
   }
 });
 
+/** GET /api/locums/:id/photo — serve profile photo publicly (no auth, used as img src) */
+router.get("/locums/:id/photo", async (req, res) => {
+  const id = parseInt(req.params.id as string);
+  if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
+  try {
+    const [locum] = await db.select({ profilePhotoUrl: locumsTable.profilePhotoUrl })
+      .from(locumsTable).where(eq(locumsTable.id, id)).limit(1);
+    if (!locum?.profilePhotoUrl) {
+      res.status(404).json({ error: "No profile photo" });
+      return;
+    }
+    const file = await storage.getObjectEntityFile(locum.profilePhotoUrl);
+    const response = await storage.downloadObject(file);
+    const ct = response.headers.get("content-type") || "image/jpeg";
+    res.setHeader("Content-Type", ct);
+    res.setHeader("Cache-Control", "public, max-age=3600");
+    const buffer = Buffer.from(await response.arrayBuffer());
+    res.send(buffer);
+  } catch (err: any) {
+    if (err?.name === "ObjectNotFoundError") {
+      res.status(404).json({ error: "Photo not found" });
+    } else {
+      req.log.error({ err }, "Serve photo error");
+      res.status(500).json({ error: "Internal server error" });
+    }
+  }
+});
+
 /** PATCH /api/locums/:id/documents — save uploaded document URLs after GCS upload */
 router.patch("/locums/:id/documents", authenticate, async (req, res) => {
   const id = parseInt(req.params.id as string);
   if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
 
-  const { idDocumentUrl, practicingCertUrl, registrationCertUrl } = req.body as {
+  const { idDocumentUrl, practicingCertUrl, registrationCertUrl, profilePhotoUrl } = req.body as {
     idDocumentUrl?: string;
     practicingCertUrl?: string;
     registrationCertUrl?: string;
+    profilePhotoUrl?: string;
   };
 
   try {
@@ -66,15 +95,17 @@ router.patch("/locums/:id/documents", authenticate, async (req, res) => {
     if (idDocumentUrl) updateData.idDocumentUrl = idDocumentUrl;
     if (practicingCertUrl) updateData.practicingCertUrl = practicingCertUrl;
     if (registrationCertUrl) updateData.registrationCertUrl = registrationCertUrl;
+    if (profilePhotoUrl) updateData.profilePhotoUrl = profilePhotoUrl;
 
-    // Mark as pending verification when docs are submitted
-    updateData.verificationStatus = "pending";
+    // Only trigger verification review for actual documents, not profile photos
+    const hasDocUpdate = idDocumentUrl || practicingCertUrl || registrationCertUrl;
+    if (hasDocUpdate) updateData.verificationStatus = "pending";
 
     const [locum] = await db.update(locumsTable).set(updateData)
       .where(eq(locumsTable.id, id)).returning();
     if (!locum) { res.status(404).json({ error: "Locum not found" }); return; }
 
-    res.json({ message: "Documents submitted for verification", locum });
+    res.json({ message: hasDocUpdate ? "Documents submitted for verification" : "Profile updated", locum });
   } catch (err) {
     req.log.error({ err }, "Update documents error");
     res.status(500).json({ error: "Internal server error" });

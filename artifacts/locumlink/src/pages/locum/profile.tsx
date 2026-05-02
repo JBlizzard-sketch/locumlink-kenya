@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Progress } from "@/components/ui/progress";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -13,8 +14,9 @@ import { useToast } from "@/hooks/use-toast";
 import { Switch } from "@/components/ui/switch";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
-import { useEffect, useRef, useMemo } from "react";
+import { useEffect, useRef, useMemo, useState } from "react";
 import { Link } from "wouter";
+import { useUpload } from "@workspace/object-storage-web";
 import {
   CheckCircle2,
   Circle,
@@ -24,7 +26,11 @@ import {
   FileText,
   Star,
   Zap,
+  Camera,
+  Loader2,
 } from "lucide-react";
+
+const BASE_URL = import.meta.env.BASE_URL as string;
 
 const profileSchema = z.object({
   firstName: z.string().min(2, "First name required"),
@@ -55,10 +61,64 @@ function strengthLabel(score: number) {
 }
 
 export default function LocumProfile() {
-  const { data: profile, isLoading } = useGetMyLocum();
+  const { data: profile, isLoading, refetch } = useGetMyLocum();
   const { data: specialties } = useListSpecialties();
   const updateLocum = useUpdateLocum();
   const { toast } = useToast();
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const [photoKey, setPhotoKey] = useState(0);
+
+  const { uploadFile } = useUpload({
+    basePath: `${BASE_URL}api/storage`,
+    onError: (err) => {
+      toast({ title: "Upload failed", description: err.message, variant: "destructive" });
+    },
+  });
+
+  async function handlePhotoUpload(file: File) {
+    if (!profile) return;
+    if (!file.type.startsWith("image/")) {
+      toast({ title: "Invalid file type", description: "Please select a JPG, PNG, or WebP image.", variant: "destructive" });
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      toast({ title: "File too large", description: "Profile photo must be under 5 MB.", variant: "destructive" });
+      return;
+    }
+    setUploadingPhoto(true);
+    try {
+      const result = await uploadFile(file);
+      if (!result) return;
+      const token = localStorage.getItem("token");
+      const patchRes = await fetch(`${BASE_URL}api/locums/${profile.id}/documents`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({ profilePhotoUrl: result.objectPath }),
+      });
+      if (!patchRes.ok) throw new Error("Failed to save photo");
+      await refetch();
+      setPhotoKey((k) => k + 1);
+      toast({ title: "Photo updated", description: "Your profile photo has been saved." });
+    } catch (err: any) {
+      toast({ title: "Upload failed", description: err.message || "Please try again.", variant: "destructive" });
+    } finally {
+      setUploadingPhoto(false);
+    }
+  }
+
+  function triggerPhotoPicker() {
+    const input = document.createElement("input");
+    input.type = "file";
+    input.accept = "image/jpeg,image/png,image/webp";
+    input.onchange = (e) => {
+      const file = (e.target as HTMLInputElement).files?.[0];
+      if (file) handlePhotoUpload(file);
+    };
+    input.click();
+  }
 
   const form = useForm<ProfileFormValues>({
     resolver: zodResolver(profileSchema),
@@ -142,6 +202,70 @@ export default function LocumProfile() {
         <h1 className="text-3xl font-bold font-serif tracking-tight">My Profile</h1>
         <p className="text-muted-foreground mt-1">Your profile is your storefront — clinics see this when reviewing your applications.</p>
       </div>
+
+      {/* Profile Photo */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base">Profile Photo</CardTitle>
+          <CardDescription>A clear headshot builds trust with clinics. Max 5 MB (JPG, PNG, WebP).</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center gap-5">
+            <div className="relative">
+              <Avatar className="h-20 w-20 ring-2 ring-border">
+                <AvatarImage
+                  key={photoKey}
+                  src={
+                    (profile as any)?.profilePhotoUrl
+                      ? `${BASE_URL}api/locums/${profile!.id}/photo?t=${photoKey}`
+                      : undefined
+                  }
+                />
+                <AvatarFallback className="text-2xl bg-primary/10 text-primary font-semibold">
+                  {profile?.firstName?.charAt(0) ?? <User className="h-8 w-8" />}
+                </AvatarFallback>
+              </Avatar>
+              <button
+                onClick={triggerPhotoPicker}
+                disabled={uploadingPhoto}
+                className="absolute -bottom-1 -right-1 h-7 w-7 rounded-full bg-primary text-primary-foreground flex items-center justify-center shadow-sm hover:bg-primary/90 transition-colors disabled:opacity-50"
+                title="Change photo"
+              >
+                {uploadingPhoto ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  <Camera className="h-3.5 w-3.5" />
+                )}
+              </button>
+            </div>
+            <div className="space-y-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={triggerPhotoPicker}
+                disabled={uploadingPhoto}
+              >
+                {uploadingPhoto ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Uploading…
+                  </>
+                ) : (
+                  <>
+                    <Camera className="h-4 w-4 mr-2" />
+                    {(profile as any)?.profilePhotoUrl ? "Change Photo" : "Upload Photo"}
+                  </>
+                )}
+              </Button>
+              {(profile as any)?.profilePhotoUrl && (
+                <p className="text-xs text-green-600 flex items-center gap-1">
+                  <CheckCircle2 className="h-3.5 w-3.5" /> Photo uploaded
+                </p>
+              )}
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Profile Completion Widget */}
       <Card className="border-l-4 border-l-primary overflow-hidden">

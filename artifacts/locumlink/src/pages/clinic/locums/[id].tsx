@@ -30,6 +30,8 @@ import {
 } from "lucide-react";
 import { format, parseISO } from "date-fns";
 
+const BASE_URL = import.meta.env.BASE_URL as string;
+
 function StarRating({ value }: { value: number }) {
   return (
     <span className="flex items-center gap-0.5">
@@ -135,7 +137,7 @@ export default function ClinicLocumProfile() {
         <Card className="md:col-span-1 h-fit">
           <CardContent className="p-6 flex flex-col items-center text-center gap-3">
             <Avatar className="h-24 w-24 border-2 border-background shadow-md">
-              <AvatarImage src={locum.profilePhotoUrl ?? undefined} />
+              <AvatarImage src={locum.profilePhotoUrl ? `${BASE_URL}api/locums/${locum.id}/photo` : undefined} />
               <AvatarFallback className="bg-primary/10 text-primary text-2xl font-bold">
                 {locum.firstName?.charAt(0)}
                 {locum.lastName?.charAt(0)}
