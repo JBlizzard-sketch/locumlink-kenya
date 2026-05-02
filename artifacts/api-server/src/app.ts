@@ -45,7 +45,6 @@ const authLimiter = rateLimit({
   standardHeaders: "draft-7",
   legacyHeaders: false,
   message: { error: "Too many attempts. Please try again in 15 minutes." },
-  keyGenerator: (req) => req.ip ?? "unknown",
 });
 
 const strictLimiter = rateLimit({
@@ -54,7 +53,6 @@ const strictLimiter = rateLimit({
   standardHeaders: "draft-7",
   legacyHeaders: false,
   message: { error: "Rate limit exceeded. Please slow down." },
-  keyGenerator: (req) => req.ip ?? "unknown",
 });
 
 // Apply rate limits before the main router
