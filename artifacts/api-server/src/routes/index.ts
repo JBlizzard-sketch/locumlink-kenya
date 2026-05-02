@@ -20,6 +20,7 @@ import contractsRouter from "./contracts";
 import matchingRouter from "./matching";
 import templatesRouter from "./templates";
 import messagesRouter from "./messages";
+import platformRouter from "./platform";
 
 const router: IRouter = Router();
 
@@ -44,5 +45,6 @@ router.use(contractsRouter);
 router.use(matchingRouter);
 router.use(templatesRouter);
 router.use(messagesRouter);
+router.use(platformRouter);
 
 export default router;

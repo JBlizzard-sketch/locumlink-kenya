@@ -684,6 +684,13 @@ export interface SendMessageBody {
   body: string;
 }
 
+export interface PlatformStats {
+  openShifts: number;
+  verifiedLocums: number;
+  registeredClinics: number;
+  shiftsFilledThisMonth: number;
+}
+
 export type VerifyEntityBodyStatus =
   (typeof VerifyEntityBodyStatus)[keyof typeof VerifyEntityBodyStatus];
 

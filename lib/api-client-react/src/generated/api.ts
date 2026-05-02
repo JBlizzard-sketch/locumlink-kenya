@@ -62,6 +62,7 @@ import type {
   NotificationPreferences,
   Payment,
   PaymentList,
+  PlatformStats,
   PlatformSummary,
   RaiseDisputeBody,
   Rating,
@@ -478,6 +479,81 @@ export function useGetMe<
   request?: SecondParameter<typeof customFetch>;
 }): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
   const queryOptions = getGetMeQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Live platform statistics (public)
+ */
+export const getGetPlatformStatsUrl = () => {
+  return `/api/platform/stats`;
+};
+
+export const getPlatformStats = async (
+  options?: RequestInit,
+): Promise<PlatformStats> => {
+  return customFetch<PlatformStats>(getGetPlatformStatsUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetPlatformStatsQueryKey = () => {
+  return [`/api/platform/stats`] as const;
+};
+
+export const getGetPlatformStatsQueryOptions = <
+  TData = Awaited<ReturnType<typeof getPlatformStats>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getPlatformStats>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetPlatformStatsQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getPlatformStats>>
+  > = ({ signal }) => getPlatformStats({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getPlatformStats>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetPlatformStatsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getPlatformStats>>
+>;
+export type GetPlatformStatsQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Live platform statistics (public)
+ */
+
+export function useGetPlatformStats<
+  TData = Awaited<ReturnType<typeof getPlatformStats>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getPlatformStats>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetPlatformStatsQueryOptions(options);
 
   const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
     queryKey: QueryKey;

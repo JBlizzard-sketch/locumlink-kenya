@@ -70,6 +70,16 @@ export const GetMeResponse = zod.object({
 });
 
 /**
+ * @summary Live platform statistics (public)
+ */
+export const GetPlatformStatsResponse = zod.object({
+  openShifts: zod.number(),
+  verifiedLocums: zod.number(),
+  registeredClinics: zod.number(),
+  shiftsFilledThisMonth: zod.number(),
+});
+
+/**
  * @summary List all medical specialties with rate benchmarks
  */
 export const ListSpecialtiesResponse = zod.object({

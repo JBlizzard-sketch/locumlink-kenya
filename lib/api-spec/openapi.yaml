@@ -133,6 +133,20 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
+  # PLATFORM
+  /platform/stats:
+    get:
+      operationId: getPlatformStats
+      tags: [platform]
+      summary: Live platform statistics (public)
+      responses:
+        "200":
+          description: Platform stats
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PlatformStats"
+
   # SPECIALTIES
   /specialties:
     get:
@@ -2882,6 +2896,23 @@ components:
           maxLength: 2000
       required:
         - body
+
+    PlatformStats:
+      type: object
+      properties:
+        openShifts:
+          type: integer
+        verifiedLocums:
+          type: integer
+        registeredClinics:
+          type: integer
+        shiftsFilledThisMonth:
+          type: integer
+      required:
+        - openShifts
+        - verifiedLocums
+        - registeredClinics
+        - shiftsFilledThisMonth
 
     VerifyEntityBody:
       type: object

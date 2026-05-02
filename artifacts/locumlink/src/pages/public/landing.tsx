@@ -2,11 +2,12 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Link } from "wouter";
 import { useState } from "react";
+import { useGetPlatformStats } from "@workspace/api-client-react";
 import {
   ActivitySquare, ArrowRight, ShieldCheck, Zap, Wallet, Star,
   CheckCircle2, Clock, FileText, Bell, TrendingUp, Users,
   Building2, BriefcaseMedical, Calendar, Phone, ChevronRight,
-  MapPin, Quote,
+  MapPin, Quote, Briefcase,
 } from "lucide-react";
 
 const STATS = [
@@ -107,6 +108,9 @@ function NavBar() {
         <span>LocumLink</span>
       </Link>
       <div className="hidden md:flex items-center gap-8 text-sm font-medium text-muted-foreground">
+        <Link href="/shifts" className="hover:text-foreground transition-colors flex items-center gap-1.5">
+          <Briefcase className="h-3.5 w-3.5" /> Browse Shifts
+        </Link>
         <a href="#how-it-works" className="hover:text-foreground transition-colors">How it works</a>
         <a href="#features" className="hover:text-foreground transition-colors">Features</a>
         <a href="#testimonials" className="hover:text-foreground transition-colors">Reviews</a>
@@ -153,9 +157,9 @@ function Hero() {
       </p>
 
       <div className="flex flex-col sm:flex-row gap-4 justify-center mb-16">
-        <Link href="/register">
+        <Link href="/shifts">
           <Button size="lg" className="h-14 px-8 text-base gap-2">
-            I'm a Medical Professional <ArrowRight className="h-4 w-4" />
+            Browse Open Shifts <ArrowRight className="h-4 w-4" />
           </Button>
         </Link>
         <Link href="/register">
@@ -183,10 +187,21 @@ function Hero() {
 }
 
 function StatsBar() {
+  const { data: stats } = useGetPlatformStats({
+    query: { queryKey: ["platform-stats"], staleTime: 60_000, retry: false }
+  });
+
+  const items = stats ? [
+    { value: stats.verifiedLocums > 0 ? `${stats.verifiedLocums}+` : "1,200+", label: "Verified Locums" },
+    { value: stats.registeredClinics > 0 ? `${stats.registeredClinics}+` : "340+", label: "Private Clinics" },
+    { value: stats.openShifts > 0 ? `${stats.openShifts}` : "8,400+", label: stats.openShifts > 0 ? "Open Shifts Now" : "Shifts Filled" },
+    { value: stats.shiftsFilledThisMonth > 0 ? `${stats.shiftsFilledThisMonth}` : "KES 2.1B+", label: stats.shiftsFilledThisMonth > 0 ? "Filled This Month" : "Paid Out" },
+  ] : STATS;
+
   return (
     <section className="border-y bg-muted/30 py-12 px-6">
       <div className="max-w-5xl mx-auto grid grid-cols-2 lg:grid-cols-4 gap-8">
-        {STATS.map(({ value, label }) => (
+        {items.map(({ value, label }) => (
           <div key={label} className="text-center">
             <p className="text-3xl lg:text-4xl font-bold font-serif text-primary">{value}</p>
             <p className="text-sm text-muted-foreground mt-1">{label}</p>
@@ -452,6 +467,7 @@ function Footer() {
           <div>
             <h4 className="font-semibold mb-4 text-sm">Platform</h4>
             <ul className="space-y-3 text-sm text-muted-foreground">
+              <li><Link href="/shifts" className="hover:text-foreground transition-colors">Browse Shifts</Link></li>
               <li><Link href="/register" className="hover:text-foreground transition-colors">Sign Up</Link></li>
               <li><Link href="/login" className="hover:text-foreground transition-colors">Log In</Link></li>
               <li><a href="#how-it-works" className="hover:text-foreground transition-colors">How It Works</a></li>

@@ -4,6 +4,7 @@ import { ProtectedRoute } from "@/components/protected-route";
 
 // Pages
 import Landing from "@/pages/public/landing";
+import PublicShiftBoard from "@/pages/public/shifts";
 import Login from "@/pages/auth/login";
 import Register from "@/pages/auth/register";
 
@@ -50,6 +51,7 @@ export default function Router() {
   return (
     <Switch>
       <Route path="/" component={Landing} />
+      <Route path="/shifts" component={PublicShiftBoard} />
       <Route path="/login" component={Login} />
       <Route path="/register" component={Register} />
       
