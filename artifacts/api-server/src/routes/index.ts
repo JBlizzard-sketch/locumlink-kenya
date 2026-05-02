@@ -18,6 +18,7 @@ import documentsRouter from "./documents";
 import eventsRouter from "./events";
 import contractsRouter from "./contracts";
 import matchingRouter from "./matching";
+import templatesRouter from "./templates";
 
 const router: IRouter = Router();
 
@@ -40,5 +41,6 @@ router.use(documentsRouter);
 router.use(eventsRouter);
 router.use(contractsRouter);
 router.use(matchingRouter);
+router.use(templatesRouter);
 
 export default router;

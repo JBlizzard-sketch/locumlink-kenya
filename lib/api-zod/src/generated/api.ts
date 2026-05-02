@@ -305,6 +305,55 @@ export const ListMyClinicApplicationsResponse = zod.object({
 });
 
 /**
+ * @summary List saved shift templates for the current clinic
+ */
+export const ListShiftTemplatesResponse = zod.object({
+  data: zod.array(
+    zod.object({
+      id: zod.number(),
+      clinicId: zod.number(),
+      name: zod.string(),
+      specialtyId: zod.number().optional(),
+      title: zod.string().optional(),
+      description: zod.string().optional(),
+      startTime: zod.string().optional(),
+      endTime: zod.string().optional(),
+      rate: zod.number().optional(),
+      urgency: zod.enum(["normal", "urgent", "emergency"]).optional(),
+      positionsAvailable: zod.number().optional(),
+      specificRequirements: zod.string().optional(),
+      minYearsExperience: zod.number().optional(),
+      createdAt: zod.coerce.date().optional(),
+    }),
+  ),
+  total: zod.number(),
+});
+
+/**
+ * @summary Save a new shift template
+ */
+export const CreateShiftTemplateBody = zod.object({
+  name: zod.string(),
+  specialtyId: zod.number().optional(),
+  title: zod.string().optional(),
+  description: zod.string().optional(),
+  startTime: zod.string().optional(),
+  endTime: zod.string().optional(),
+  rate: zod.number().optional(),
+  urgency: zod.enum(["normal", "urgent", "emergency"]).optional(),
+  positionsAvailable: zod.number().optional(),
+  specificRequirements: zod.string().optional(),
+  minYearsExperience: zod.number().optional(),
+});
+
+/**
+ * @summary Delete a shift template
+ */
+export const DeleteShiftTemplateParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+/**
  * @summary Get a clinic by ID
  */
 export const GetClinicParams = zod.object({

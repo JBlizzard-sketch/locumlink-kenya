@@ -611,6 +611,60 @@ export interface VerificationQueue {
   limit: number;
 }
 
+export type ShiftTemplateUrgency =
+  (typeof ShiftTemplateUrgency)[keyof typeof ShiftTemplateUrgency];
+
+export const ShiftTemplateUrgency = {
+  normal: "normal",
+  urgent: "urgent",
+  emergency: "emergency",
+} as const;
+
+export interface ShiftTemplate {
+  id: number;
+  clinicId: number;
+  name: string;
+  specialtyId?: number;
+  title?: string;
+  description?: string;
+  startTime?: string;
+  endTime?: string;
+  rate?: number;
+  urgency?: ShiftTemplateUrgency;
+  positionsAvailable?: number;
+  specificRequirements?: string;
+  minYearsExperience?: number;
+  createdAt?: string;
+}
+
+export interface ShiftTemplateList {
+  data: ShiftTemplate[];
+  total: number;
+}
+
+export type CreateShiftTemplateBodyUrgency =
+  (typeof CreateShiftTemplateBodyUrgency)[keyof typeof CreateShiftTemplateBodyUrgency];
+
+export const CreateShiftTemplateBodyUrgency = {
+  normal: "normal",
+  urgent: "urgent",
+  emergency: "emergency",
+} as const;
+
+export interface CreateShiftTemplateBody {
+  name: string;
+  specialtyId?: number;
+  title?: string;
+  description?: string;
+  startTime?: string;
+  endTime?: string;
+  rate?: number;
+  urgency?: CreateShiftTemplateBodyUrgency;
+  positionsAvailable?: number;
+  specificRequirements?: string;
+  minYearsExperience?: number;
+}
+
 export type VerifyEntityBodyStatus =
   (typeof VerifyEntityBodyStatus)[keyof typeof VerifyEntityBodyStatus];
 

@@ -12,7 +12,8 @@ import {
   ActivitySquare,
   Users,
   FileText,
-  Star
+  Star,
+  LayoutTemplate,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -46,6 +47,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
     { name: "Applications", href: "/clinic/applications", icon: ActivitySquare },
     { name: "Active Bookings", href: "/clinic/bookings", icon: CalendarDays },
     { name: "Locum Directory", href: "/clinic/locums", icon: Users },
+    { name: "Templates", href: "/clinic/templates", icon: LayoutTemplate },
     { name: "Analytics", href: "/clinic/analytics", icon: FileText },
     { name: "Clinic Profile", href: "/clinic/profile", icon: Settings },
   ];

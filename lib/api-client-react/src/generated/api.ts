@@ -31,6 +31,7 @@ import type {
   CreateClinicBody,
   CreateLocumBody,
   CreateShiftBody,
+  CreateShiftTemplateBody,
   CurrentUser,
   Dispute,
   DisputeList,
@@ -68,6 +69,8 @@ import type {
   Shift,
   ShiftDetail,
   ShiftList,
+  ShiftTemplate,
+  ShiftTemplateList,
   Specialty,
   SpecialtyList,
   SubmitRatingBody,
@@ -993,6 +996,251 @@ export function useListMyClinicApplications<
 
   return { ...query, queryKey: queryOptions.queryKey };
 }
+
+/**
+ * @summary List saved shift templates for the current clinic
+ */
+export const getListShiftTemplatesUrl = () => {
+  return `/api/clinics/me/shift-templates`;
+};
+
+export const listShiftTemplates = async (
+  options?: RequestInit,
+): Promise<ShiftTemplateList> => {
+  return customFetch<ShiftTemplateList>(getListShiftTemplatesUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getListShiftTemplatesQueryKey = () => {
+  return [`/api/clinics/me/shift-templates`] as const;
+};
+
+export const getListShiftTemplatesQueryOptions = <
+  TData = Awaited<ReturnType<typeof listShiftTemplates>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof listShiftTemplates>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getListShiftTemplatesQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof listShiftTemplates>>
+  > = ({ signal }) => listShiftTemplates({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof listShiftTemplates>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListShiftTemplatesQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listShiftTemplates>>
+>;
+export type ListShiftTemplatesQueryError = ErrorType<unknown>;
+
+/**
+ * @summary List saved shift templates for the current clinic
+ */
+
+export function useListShiftTemplates<
+  TData = Awaited<ReturnType<typeof listShiftTemplates>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof listShiftTemplates>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListShiftTemplatesQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Save a new shift template
+ */
+export const getCreateShiftTemplateUrl = () => {
+  return `/api/clinics/me/shift-templates`;
+};
+
+export const createShiftTemplate = async (
+  createShiftTemplateBody: CreateShiftTemplateBody,
+  options?: RequestInit,
+): Promise<ShiftTemplate> => {
+  return customFetch<ShiftTemplate>(getCreateShiftTemplateUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(createShiftTemplateBody),
+  });
+};
+
+export const getCreateShiftTemplateMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createShiftTemplate>>,
+    TError,
+    { data: BodyType<CreateShiftTemplateBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof createShiftTemplate>>,
+  TError,
+  { data: BodyType<CreateShiftTemplateBody> },
+  TContext
+> => {
+  const mutationKey = ["createShiftTemplate"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof createShiftTemplate>>,
+    { data: BodyType<CreateShiftTemplateBody> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return createShiftTemplate(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type CreateShiftTemplateMutationResult = NonNullable<
+  Awaited<ReturnType<typeof createShiftTemplate>>
+>;
+export type CreateShiftTemplateMutationBody = BodyType<CreateShiftTemplateBody>;
+export type CreateShiftTemplateMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Save a new shift template
+ */
+export const useCreateShiftTemplate = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createShiftTemplate>>,
+    TError,
+    { data: BodyType<CreateShiftTemplateBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof createShiftTemplate>>,
+  TError,
+  { data: BodyType<CreateShiftTemplateBody> },
+  TContext
+> => {
+  return useMutation(getCreateShiftTemplateMutationOptions(options));
+};
+
+/**
+ * @summary Delete a shift template
+ */
+export const getDeleteShiftTemplateUrl = (id: number) => {
+  return `/api/clinics/me/shift-templates/${id}`;
+};
+
+export const deleteShiftTemplate = async (
+  id: number,
+  options?: RequestInit,
+): Promise<void> => {
+  return customFetch<void>(getDeleteShiftTemplateUrl(id), {
+    ...options,
+    method: "DELETE",
+  });
+};
+
+export const getDeleteShiftTemplateMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deleteShiftTemplate>>,
+    TError,
+    { id: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof deleteShiftTemplate>>,
+  TError,
+  { id: number },
+  TContext
+> => {
+  const mutationKey = ["deleteShiftTemplate"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof deleteShiftTemplate>>,
+    { id: number }
+  > = (props) => {
+    const { id } = props ?? {};
+
+    return deleteShiftTemplate(id, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type DeleteShiftTemplateMutationResult = NonNullable<
+  Awaited<ReturnType<typeof deleteShiftTemplate>>
+>;
+
+export type DeleteShiftTemplateMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Delete a shift template
+ */
+export const useDeleteShiftTemplate = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deleteShiftTemplate>>,
+    TError,
+    { id: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof deleteShiftTemplate>>,
+  TError,
+  { id: number },
+  TContext
+> => {
+  return useMutation(getDeleteShiftTemplateMutationOptions(options));
+};
 
 /**
  * @summary Get a clinic by ID

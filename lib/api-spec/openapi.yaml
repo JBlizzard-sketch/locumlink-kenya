@@ -254,6 +254,51 @@ paths:
               schema:
                 $ref: "#/components/schemas/ApplicationList"
 
+  /clinics/me/shift-templates:
+    get:
+      operationId: listShiftTemplates
+      tags: [clinics]
+      summary: List saved shift templates for the current clinic
+      responses:
+        "200":
+          description: Template list
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ShiftTemplateList"
+    post:
+      operationId: createShiftTemplate
+      tags: [clinics]
+      summary: Save a new shift template
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateShiftTemplateBody"
+      responses:
+        "201":
+          description: Template created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ShiftTemplate"
+
+  /clinics/me/shift-templates/{id}:
+    delete:
+      operationId: deleteShiftTemplate
+      tags: [clinics]
+      summary: Delete a shift template
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
   /clinics/{id}:
     get:
       operationId: getClinic
@@ -2621,6 +2666,86 @@ components:
         - total
         - page
         - limit
+
+    ShiftTemplate:
+      type: object
+      properties:
+        id:
+          type: integer
+        clinicId:
+          type: integer
+        name:
+          type: string
+        specialtyId:
+          type: integer
+        title:
+          type: string
+        description:
+          type: string
+        startTime:
+          type: string
+        endTime:
+          type: string
+        rate:
+          type: integer
+        urgency:
+          type: string
+          enum: [normal, urgent, emergency]
+        positionsAvailable:
+          type: integer
+        specificRequirements:
+          type: string
+        minYearsExperience:
+          type: integer
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - clinicId
+        - name
+
+    ShiftTemplateList:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/ShiftTemplate"
+        total:
+          type: integer
+      required:
+        - data
+        - total
+
+    CreateShiftTemplateBody:
+      type: object
+      properties:
+        name:
+          type: string
+        specialtyId:
+          type: integer
+        title:
+          type: string
+        description:
+          type: string
+        startTime:
+          type: string
+        endTime:
+          type: string
+        rate:
+          type: integer
+        urgency:
+          type: string
+          enum: [normal, urgent, emergency]
+        positionsAvailable:
+          type: integer
+        specificRequirements:
+          type: string
+        minYearsExperience:
+          type: integer
+      required:
+        - name
 
     VerifyEntityBody:
       type: object
