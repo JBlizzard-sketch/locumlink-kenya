@@ -1491,6 +1491,168 @@ export const useUpdateLocum = <
 };
 
 /**
+ * @summary Get the current locum's availability calendar
+ */
+export const getGetMyLocumAvailabilityUrl = () => {
+  return `/api/locums/me/availability`;
+};
+
+export const getMyLocumAvailability = async (
+  options?: RequestInit,
+): Promise<AvailabilityList> => {
+  return customFetch<AvailabilityList>(getGetMyLocumAvailabilityUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetMyLocumAvailabilityQueryKey = () => {
+  return [`/api/locums/me/availability`] as const;
+};
+
+export const getGetMyLocumAvailabilityQueryOptions = <
+  TData = Awaited<ReturnType<typeof getMyLocumAvailability>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getMyLocumAvailability>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getGetMyLocumAvailabilityQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getMyLocumAvailability>>
+  > = ({ signal }) => getMyLocumAvailability({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getMyLocumAvailability>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetMyLocumAvailabilityQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getMyLocumAvailability>>
+>;
+export type GetMyLocumAvailabilityQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Get the current locum's availability calendar
+ */
+
+export function useGetMyLocumAvailability<
+  TData = Awaited<ReturnType<typeof getMyLocumAvailability>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getMyLocumAvailability>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetMyLocumAvailabilityQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Set current locum's availability slots (full replace)
+ */
+export const getSetMyLocumAvailabilityUrl = () => {
+  return `/api/locums/me/availability`;
+};
+
+export const setMyLocumAvailability = async (
+  setAvailabilityBody: SetAvailabilityBody,
+  options?: RequestInit,
+): Promise<MessageResponse> => {
+  return customFetch<MessageResponse>(getSetMyLocumAvailabilityUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(setAvailabilityBody),
+  });
+};
+
+export const getSetMyLocumAvailabilityMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof setMyLocumAvailability>>,
+    TError,
+    { data: BodyType<SetAvailabilityBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof setMyLocumAvailability>>,
+  TError,
+  { data: BodyType<SetAvailabilityBody> },
+  TContext
+> => {
+  const mutationKey = ["setMyLocumAvailability"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof setMyLocumAvailability>>,
+    { data: BodyType<SetAvailabilityBody> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return setMyLocumAvailability(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type SetMyLocumAvailabilityMutationResult = NonNullable<
+  Awaited<ReturnType<typeof setMyLocumAvailability>>
+>;
+export type SetMyLocumAvailabilityMutationBody = BodyType<SetAvailabilityBody>;
+export type SetMyLocumAvailabilityMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Set current locum's availability slots (full replace)
+ */
+export const useSetMyLocumAvailability = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof setMyLocumAvailability>>,
+    TError,
+    { data: BodyType<SetAvailabilityBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof setMyLocumAvailability>>,
+  TError,
+  { data: BodyType<SetAvailabilityBody> },
+  TContext
+> => {
+  return useMutation(getSetMyLocumAvailabilityMutationOptions(options));
+};
+
+/**
  * @summary Get locum availability calendar
  */
 export const getGetLocumAvailabilityUrl = (

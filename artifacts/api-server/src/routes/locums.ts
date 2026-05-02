@@ -97,6 +97,39 @@ router.patch("/locums/:id", authenticate, async (req, res) => {
   }
 });
 
+router.get("/locums/me/availability", authenticate, async (req, res) => {
+  const { userId } = (req as any).user;
+  try {
+    const [locum] = await db.select().from(locumsTable).where(eq(locumsTable.userId, userId)).limit(1);
+    if (!locum) { res.status(404).json({ error: "Locum not found" }); return; }
+    const data = await db.select().from(availabilitySlotsTable).where(eq(availabilitySlotsTable.locumId, locum.id));
+    res.json({ data });
+  } catch (err) {
+    req.log.error({ err }, "Get my availability error");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+router.post("/locums/me/availability", authenticate, async (req, res) => {
+  const { userId } = (req as any).user;
+  const parse = SetLocumAvailabilityBody.safeParse(req.body);
+  if (!parse.success) { res.status(400).json({ error: "Validation failed" }); return; }
+  try {
+    const [locum] = await db.select().from(locumsTable).where(eq(locumsTable.userId, userId)).limit(1);
+    if (!locum) { res.status(404).json({ error: "Locum not found" }); return; }
+    await db.delete(availabilitySlotsTable).where(eq(availabilitySlotsTable.locumId, locum.id));
+    if (parse.data.slots.length > 0) {
+      await db.insert(availabilitySlotsTable).values(
+        parse.data.slots.map(s => ({ locumId: locum.id, ...s })),
+      );
+    }
+    res.json({ message: "Availability updated" });
+  } catch (err) {
+    req.log.error({ err }, "Set my availability error");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
 router.get("/locums/:id/availability", async (req, res) => {
   const id = parseInt(req.params.id as string);
   if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }

@@ -46,6 +46,7 @@ Production-grade two-sided marketplace connecting verified locum medical profess
 | 12 | Smart shift matching UI (5 filters, match score algorithm, recommendation tab) |
 | 13 | GCS-backed document uploads (presigned URL flow), unread notification badge in nav, mark-all-read, admin doc viewer with clickable links |
 | 14 | Full analytics & reporting: real earningsByMonth (6 months), recentActivity feed, clinic payments scoped to clinic, topLocums table, admin revenue trend + shift volume charts, revenueByMonth in PlatformSummary (8 months of data), extended seed to 14 shifts / 8 payments |
+| 15 | Calendar & Availability overhaul: `/locums/me/availability` GET+POST routes, working "Set Weekends", "Set Weekdays", "Clear All" bulk actions, confirmed-shift calendar overlay (blue), completed-shift overlay (green), day detail panel showing booking info or availability toggle, upcoming shifts list, month stats (available days, booked shifts, upcoming count), codegen script permanently fixed to strip invalid barrel export |
 
 ## Architecture Notes
 

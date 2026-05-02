@@ -464,6 +464,44 @@ export const UpdateLocumResponse = zod.object({
 });
 
 /**
+ * @summary Get the current locum's availability calendar
+ */
+export const GetMyLocumAvailabilityResponse = zod.object({
+  data: zod.array(
+    zod.object({
+      id: zod.number(),
+      locumId: zod.number(),
+      date: zod.string(),
+      startTime: zod.string().optional(),
+      endTime: zod.string().optional(),
+      isAvailable: zod.boolean(),
+      isRecurring: zod.boolean().optional(),
+      recurringDayOfWeek: zod.number().optional(),
+    }),
+  ),
+});
+
+/**
+ * @summary Set current locum's availability slots (full replace)
+ */
+export const SetMyLocumAvailabilityBody = zod.object({
+  slots: zod.array(
+    zod.object({
+      date: zod.string(),
+      startTime: zod.string().optional(),
+      endTime: zod.string().optional(),
+      isAvailable: zod.boolean(),
+      isRecurring: zod.boolean().optional(),
+      recurringDayOfWeek: zod.number().optional(),
+    }),
+  ),
+});
+
+export const SetMyLocumAvailabilityResponse = zod.object({
+  message: zod.string(),
+});
+
+/**
  * @summary Get locum availability calendar
  */
 export const GetLocumAvailabilityParams = zod.object({

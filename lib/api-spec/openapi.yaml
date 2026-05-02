@@ -398,6 +398,36 @@ paths:
               schema:
                 $ref: "#/components/schemas/Locum"
 
+  /locums/me/availability:
+    get:
+      operationId: getMyLocumAvailability
+      tags: [locums]
+      summary: Get the current locum's availability calendar
+      responses:
+        "200":
+          description: Availability slots
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AvailabilityList"
+    post:
+      operationId: setMyLocumAvailability
+      tags: [locums]
+      summary: Set current locum's availability slots (full replace)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SetAvailabilityBody"
+      responses:
+        "200":
+          description: Availability updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+
   /locums/{id}/availability:
     get:
       operationId: getLocumAvailability
