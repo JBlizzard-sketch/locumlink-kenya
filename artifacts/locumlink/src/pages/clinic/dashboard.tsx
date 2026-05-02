@@ -1,15 +1,16 @@
-import { useGetMyClinic, useGetClinicAnalytics, useListShifts } from "@workspace/api-client-react";
+import { useGetMyClinic, useGetClinicAnalytics, useListShifts, useListMyClinicApplications } from "@workspace/api-client-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Link } from "wouter";
-import { PlusCircle, Users, ActivitySquare, TrendingUp, AlertTriangle, DollarSign } from "lucide-react";
+import { PlusCircle, Users, ActivitySquare, TrendingUp, AlertTriangle, DollarSign, ClipboardList } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer } from "recharts";
 
 export default function ClinicDashboard() {
   const { data: clinic, isLoading: clinicLoading } = useGetMyClinic();
   const { data: analytics, isLoading: analyticsLoading } = useGetClinicAnalytics();
-  const { data: openShifts, isLoading: shiftsLoading } = useListShifts({ status: 'open' }); // Assuming we can filter by clinic ID on backend using my clinic context
+  const { data: openShifts, isLoading: shiftsLoading } = useListShifts({ status: 'open' } as any);
+  const { data: pendingApps, isLoading: pendingLoading } = useListMyClinicApplications({ status: 'applied' } as any);
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-KE', { style: 'currency', currency: 'KES', maximumFractionDigits: 0 }).format(amount);
@@ -77,16 +78,24 @@ export default function ClinicDashboard() {
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Verification</CardTitle>
-            <AlertTriangle className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-sm font-medium">Pending Reviews</CardTitle>
+            <ClipboardList className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            {clinicLoading ? (
-              <Skeleton className="h-8 w-[100px]" />
+            {pendingLoading ? (
+              <Skeleton className="h-8 w-[60px]" />
             ) : (
-              <div className="text-lg font-bold capitalize text-primary">{clinic?.verificationStatus}</div>
+              <div className={`text-2xl font-bold ${(pendingApps?.total ?? 0) > 0 ? "text-amber-600" : "text-foreground"}`}>
+                {pendingApps?.total ?? 0}
+              </div>
             )}
-            <p className="text-xs text-muted-foreground mt-1">Account status</p>
+            <p className="text-xs text-muted-foreground mt-1">
+              {(pendingApps?.total ?? 0) > 0 ? (
+                <Link href="/clinic/applications" className="text-amber-600 hover:underline">Review applications →</Link>
+              ) : (
+                "Applications awaiting review"
+              )}
+            </p>
           </CardContent>
         </Card>
       </div>

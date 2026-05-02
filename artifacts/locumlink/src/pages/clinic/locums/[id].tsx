@@ -1,16 +1,23 @@
 import { useRoute, Link } from "wouter";
+import { useState } from "react";
 import {
   useGetLocum,
   useGetLocumRatings,
+  useGetMyClinic,
+  useListShifts,
   getGetLocumQueryKey,
   getGetLocumRatingsQueryKey,
 } from "@workspace/api-client-react";
+import { useMutation } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Separator } from "@/components/ui/separator";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useToast } from "@/hooks/use-toast";
 import {
   ChevronLeft,
   ShieldCheck,
@@ -27,6 +34,8 @@ import {
   AlertCircle,
   CheckCircle2,
   Phone,
+  Send,
+  PlusCircle,
 } from "lucide-react";
 import { format, parseISO } from "date-fns";
 
@@ -62,9 +71,31 @@ function DocStatus({ label, url }: { label: string; url?: string | null }) {
   );
 }
 
+function useInviteToShift() {
+  const token = localStorage.getItem("token");
+  return useMutation({
+    mutationFn: async ({ shiftId, locumId }: { shiftId: number; locumId: number }) => {
+      const res = await fetch(`${BASE_URL}api/shifts/${shiftId}/invite/${locumId}`, {
+        method: "POST",
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw err;
+      }
+      return res.json();
+    },
+  });
+}
+
 export default function ClinicLocumProfile() {
   const [, params] = useRoute("/clinic/locums/:id");
   const locumId = Number(params?.id);
+  const { toast } = useToast();
+
+  const [inviteOpen, setInviteOpen] = useState(false);
+  const [selectedShiftId, setSelectedShiftId] = useState<string>("");
+  const [inviteSent, setInviteSent] = useState(false);
 
   const { data: locum, isLoading } = useGetLocum(locumId, {
     query: { enabled: !!locumId, queryKey: getGetLocumQueryKey(locumId) },
@@ -73,6 +104,29 @@ export default function ClinicLocumProfile() {
   const { data: ratingsData, isLoading: ratingsLoading } = useGetLocumRatings(locumId, {
     query: { enabled: !!locumId, queryKey: getGetLocumRatingsQueryKey(locumId) },
   });
+
+  const { data: myClinic } = useGetMyClinic();
+
+  const { data: clinicShifts } = useListShifts(
+    { clinicId: myClinic?.id, status: "open" } as any,
+    { query: { enabled: inviteOpen && !!myClinic?.id, queryKey: ["clinic-open-shifts", myClinic?.id] } }
+  );
+
+  const inviteMutation = useInviteToShift();
+
+  const openShifts = clinicShifts?.data ?? [];
+
+  const handleInvite = async () => {
+    if (!selectedShiftId) return;
+    try {
+      await inviteMutation.mutateAsync({ shiftId: Number(selectedShiftId), locumId });
+      setInviteSent(true);
+      setInviteOpen(false);
+      toast({ title: "Invitation sent", description: `${locum?.firstName} ${locum?.lastName} has been notified and can now apply.` });
+    } catch {
+      toast({ title: "Could not send invitation", description: "Please try again.", variant: "destructive" });
+    }
+  };
 
   const ratings = (ratingsData as any)?.data ?? [];
 
@@ -209,11 +263,64 @@ export default function ClinicLocumProfile() {
               </div>
             </div>
 
-            <Button className="w-full mt-2" asChild>
+            {inviteSent ? (
+              <div className="flex items-center justify-center gap-2 text-sm text-emerald-700 font-medium py-2 w-full">
+                <CheckCircle2 className="h-4 w-4" /> Invitation sent
+              </div>
+            ) : (
+              <Button className="w-full mt-2" onClick={() => setInviteOpen(true)}>
+                <Send className="h-4 w-4 mr-2" /> Invite to a Shift
+              </Button>
+            )}
+            <Button variant="outline" className="w-full" asChild>
               <Link href={`/clinic/shifts/new?specialtyId=${locum.primarySpecialtyId}`}>
-                Post a Shift for This Specialty
+                <PlusCircle className="h-4 w-4 mr-2" /> Post a New Shift
               </Link>
             </Button>
+
+            {/* Invite to Shift Dialog */}
+            <Dialog open={inviteOpen} onOpenChange={(o) => { setInviteOpen(o); if (!o) setSelectedShiftId(""); }}>
+              <DialogContent className="max-w-md">
+                <DialogHeader>
+                  <DialogTitle>Invite {locum.firstName} {locum.lastName}</DialogTitle>
+                  <DialogDescription>
+                    Select one of your open shifts to invite this locum to apply. They will receive an in-app notification immediately.
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="py-2">
+                  {openShifts.length === 0 ? (
+                    <div className="text-center py-6 text-sm text-muted-foreground">
+                      <p>You have no open shifts right now.</p>
+                      <Button variant="link" className="mt-1 p-0 h-auto text-primary" asChild>
+                        <Link href="/clinic/shifts/new">Post a shift first →</Link>
+                      </Button>
+                    </div>
+                  ) : (
+                    <Select value={selectedShiftId} onValueChange={setSelectedShiftId}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Choose a shift…" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {openShifts.map((shift: any) => (
+                          <SelectItem key={shift.id} value={String(shift.id)}>
+                            {shift.title} — {shift.shiftDate} · KES {shift.rate?.toLocaleString("en-KE")}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
+                </div>
+                <DialogFooter>
+                  <Button variant="outline" onClick={() => setInviteOpen(false)}>Cancel</Button>
+                  <Button
+                    onClick={handleInvite}
+                    disabled={!selectedShiftId || inviteMutation.isPending}
+                  >
+                    {inviteMutation.isPending ? "Sending…" : "Send Invitation"}
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
           </CardContent>
         </Card>
 

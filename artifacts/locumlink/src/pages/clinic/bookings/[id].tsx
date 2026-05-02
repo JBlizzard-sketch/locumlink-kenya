@@ -15,6 +15,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { BookingChat } from "@/components/booking-chat";
 
+const BASE_URL = import.meta.env.BASE_URL as string;
+
 function StarRating({ value, onChange }: { value: number; onChange: (v: number) => void }) {
   const [hovered, setHovered] = useState(0);
   return (
@@ -144,7 +146,7 @@ export default function ClinicBookingDetail() {
             <CardContent>
               <div className="flex flex-col sm:flex-row items-start sm:items-center gap-6">
                 <Avatar className="h-20 w-20 border-2 border-primary/20">
-                  <AvatarImage src={booking.locum?.profilePhotoUrl ?? undefined} />
+                  <AvatarImage src={booking.locum?.profilePhotoUrl && (booking as any).locumId ? `${BASE_URL}api/locums/${(booking as any).locumId}/photo` : undefined} />
                   <AvatarFallback className="bg-primary/10 text-primary text-xl font-bold">
                     {booking.locum?.firstName?.charAt(0)}{booking.locum?.lastName?.charAt(0)}
                   </AvatarFallback>
