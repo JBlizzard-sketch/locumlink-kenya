@@ -9,6 +9,22 @@ import {
 import { DollarSign, Download, BriefcaseMedical, TrendingUp, Star, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
+function toCsv(rows: string[][]): string {
+  return rows
+    .map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(","))
+    .join("\n");
+}
+
+function downloadCsv(filename: string, content: string) {
+  const blob = new Blob([content], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
 export default function LocumEarnings() {
   const { data: analytics, isLoading } = useGetLocumAnalytics();
 
@@ -31,8 +47,46 @@ export default function LocumEarnings() {
   };
 
   const chartData = earningsByMonth.map(m => ({ ...m, monthLabel: formatMonth(m.month) }));
-
   const recentActivity = analytics?.recentActivity ?? [];
+
+  const handleKraExport = () => {
+    if (!analytics) return;
+    const today = new Date().toISOString().slice(0, 10);
+    const currentYear = new Date().getFullYear();
+    const sections: string[] = [];
+
+    sections.push(`"LOCUMLINK — KRA TAX INCOME SUMMARY"`);
+    sections.push(`"Tax Year: ${currentYear}"`);
+    sections.push(`"Generated: ${today}"`);
+    sections.push(`"Note: This document is for self-assessment purposes. Consult a tax advisor for official filings."\n`);
+
+    sections.push("ANNUAL INCOME SUMMARY");
+    sections.push(toCsv([
+      ["Description", "Amount (KES)"],
+      ["Gross Locum Income", String(totalEarnings)],
+      ["Number of Shifts Completed", String(totalShifts)],
+      ["Average Earnings per Shift", String(avgPerShift)],
+    ]));
+
+    if (chartData.length > 0) {
+      sections.push("\nMONTHLY BREAKDOWN");
+      sections.push(toCsv([
+        ["Month", "Shifts Completed", "Net Earnings (KES)"],
+        ...chartData.map(r => [r.monthLabel, String(r.shifts), String(r.earnings)]),
+        ["TOTAL", String(chartData.reduce((s, r) => s + r.shifts, 0)), String(chartData.reduce((s, r) => s + r.earnings, 0))],
+      ]));
+    }
+
+    if (recentActivity.length > 0) {
+      sections.push("\nRECENT SHIFT ACTIVITY");
+      sections.push(toCsv([
+        ["Date", "Description", "Status"],
+        ...recentActivity.map(a => [a.date, a.description, "Completed"]),
+      ]));
+    }
+
+    downloadCsv(`locumlink-kra-report-${currentYear}-${today}.csv`, sections.join("\n"));
+  };
 
   return (
     <div className="space-y-6 max-w-5xl mx-auto">
@@ -41,7 +95,7 @@ export default function LocumEarnings() {
           <h1 className="text-3xl font-bold font-serif tracking-tight">Earnings</h1>
           <p className="text-muted-foreground mt-1">Track your income and generate tax-ready reports.</p>
         </div>
-        <Button variant="outline" className="gap-2">
+        <Button variant="outline" className="gap-2" onClick={handleKraExport} disabled={isLoading || !analytics}>
           <Download className="h-4 w-4" /> KRA Report
         </Button>
       </div>

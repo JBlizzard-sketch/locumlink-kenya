@@ -10,6 +10,22 @@ import { DollarSign, Download, TrendingUp, Clock, AlertCircle, ActivitySquare, S
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 
+function toCsv(rows: string[][]): string {
+  return rows
+    .map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(","))
+    .join("\n");
+}
+
+function downloadCsv(filename: string, content: string) {
+  const blob = new Blob([content], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
 export default function ClinicAnalytics() {
   const { data: analytics, isLoading } = useGetClinicAnalytics({ period: "year" });
 
@@ -26,6 +42,59 @@ export default function ClinicAnalytics() {
   const topLocums = analytics?.topLocums ?? [];
   const hardestToFill = analytics?.hardestToFill ?? [];
 
+  const handleExport = () => {
+    if (!analytics) return;
+    const today = new Date().toISOString().slice(0, 10);
+    const sections: string[] = [];
+
+    sections.push("=== LOCUMLINK HR ANALYTICS REPORT ===");
+    sections.push(`Exported: ${today}\n`);
+
+    sections.push("SUMMARY");
+    sections.push(toCsv([
+      ["Metric", "Value"],
+      ["Total Spend (YTD)", fmt(analytics.totalSpend ?? 0)],
+      ["Overall Fill Rate", `${analytics.fillRate ?? 0}%`],
+      ["Avg Time to Fill (hrs)", String(analytics.averageTimeToFill ?? 0)],
+      ["Shifts Posted", String(analytics.totalShiftsPosted ?? 0)],
+      ["Shifts Filled", String(analytics.totalShiftsFilled ?? 0)],
+    ]));
+
+    if (spendByMonth.length > 0) {
+      sections.push("\nMONTHLY SPEND");
+      sections.push(toCsv([
+        ["Month", "Spend (KES)"],
+        ...spendByMonth.map(m => [m.monthLabel, String(m.spend)]),
+      ]));
+    }
+
+    if (fillRateBySpecialty.length > 0) {
+      sections.push("\nFILL RATE BY SPECIALTY");
+      sections.push(toCsv([
+        ["Specialty", "Fill Rate (%)"],
+        ...fillRateBySpecialty.map(s => [s.specialtyName, String(s.fillRate)]),
+      ]));
+    }
+
+    if (topLocums.length > 0) {
+      sections.push("\nTOP LOCUMS");
+      sections.push(toCsv([
+        ["Name", "Shifts Completed", "Avg Rating"],
+        ...topLocums.map(l => [l.name, String(l.shiftsCompleted), l.averageRating ? (l.averageRating as number).toFixed(1) : "—"]),
+      ]));
+    }
+
+    if (hardestToFill.length > 0) {
+      sections.push("\nHARDEST TO FILL");
+      sections.push(toCsv([
+        ["Specialty", "Avg Days to Fill"],
+        ...hardestToFill.map(h => [h.specialtyName, String(h.avgDaysToFill)]),
+      ]));
+    }
+
+    downloadCsv(`locumlink-analytics-${today}.csv`, sections.join("\n"));
+  };
+
   return (
     <div className="space-y-6 max-w-6xl mx-auto">
       <div className="flex justify-between items-start">
@@ -33,8 +102,8 @@ export default function ClinicAnalytics() {
           <h1 className="text-3xl font-bold font-serif tracking-tight">HR Analytics</h1>
           <p className="text-muted-foreground mt-1">Insights into your staffing spend and fill rates.</p>
         </div>
-        <Button variant="outline" className="gap-2">
-          <Download className="h-4 w-4" /> Export Report
+        <Button variant="outline" className="gap-2" onClick={handleExport} disabled={isLoading || !analytics}>
+          <Download className="h-4 w-4" /> Export CSV
         </Button>
       </div>
 

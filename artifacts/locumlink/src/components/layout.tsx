@@ -1,27 +1,39 @@
+import { useState } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { Link, useLocation } from "wouter";
-import { 
-  BriefcaseMedical, 
-  CalendarDays, 
-  LayoutDashboard, 
-  LogOut, 
-  Settings, 
-  User, 
-  Bell, 
+import {
+  BriefcaseMedical,
+  CalendarDays,
+  LayoutDashboard,
+  LogOut,
+  Settings,
+  User,
+  Bell,
   Wallet,
   ActivitySquare,
   Users,
   FileText,
   Star,
   LayoutTemplate,
+  Menu,
+  X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { useListNotifications, getListNotificationsQueryKey } from "@workspace/api-client-react";
+
+type NavItem = {
+  name: string;
+  href: string;
+  icon: React.ComponentType<{ className?: string }>;
+  badge?: number;
+};
 
 export function Layout({ children }: { children: React.ReactNode }) {
   const { user, logout } = useAuth();
   const [location] = useLocation();
+  const [mobileOpen, setMobileOpen] = useState(false);
 
   const isLocum = user?.role === "locum";
   const isClinic = user?.role === "clinic_admin" || user?.role === "clinic_hr";
@@ -30,7 +42,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
   });
   const unreadCount = notifData?.data?.filter(n => n.status !== "read").length ?? 0;
 
-  const locumNav = [
+  const locumNav: NavItem[] = [
     { name: "Dashboard", href: "/locum/dashboard", icon: LayoutDashboard },
     { name: "Find Shifts", href: "/locum/shifts", icon: BriefcaseMedical },
     { name: "My Applications", href: "/locum/applications", icon: ActivitySquare },
@@ -42,7 +54,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
     { name: "Profile", href: "/locum/profile", icon: User },
   ];
 
-  const clinicNav = [
+  const clinicNav: NavItem[] = [
     { name: "Dashboard", href: "/clinic/dashboard", icon: LayoutDashboard },
     { name: "Manage Shifts", href: "/clinic/shifts", icon: BriefcaseMedical },
     { name: "Applications", href: "/clinic/applications", icon: ActivitySquare },
@@ -54,7 +66,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
     { name: "Clinic Profile", href: "/clinic/profile", icon: Settings },
   ];
 
-  const adminNav = [
+  const adminNav: NavItem[] = [
     { name: "Dashboard", href: "/admin/dashboard", icon: LayoutDashboard },
     { name: "Verifications", href: "/admin/verification", icon: Users },
     { name: "Disputes", href: "/admin/disputes", icon: ActivitySquare },
@@ -62,15 +74,53 @@ export function Layout({ children }: { children: React.ReactNode }) {
     { name: "Users", href: "/admin/users", icon: User },
   ];
 
-  const navItems = user?.role === "locum" 
-    ? locumNav 
-    : user?.role === "clinic_admin" || user?.role === "clinic_hr" 
-      ? clinicNav 
-      : user?.role === "platform_admin" ? adminNav : [];
+  const navItems =
+    user?.role === "locum"
+      ? locumNav
+      : user?.role === "clinic_admin" || user?.role === "clinic_hr"
+      ? clinicNav
+      : user?.role === "platform_admin"
+      ? adminNav
+      : [];
+
+  function NavLinks({ onNavigate }: { onNavigate?: () => void }) {
+    return (
+      <>
+        {navItems.map((item) => {
+          const isActive = location === item.href || location.startsWith(item.href + "/");
+          return (
+            <Link key={item.href} href={item.href} onClick={onNavigate}>
+              <div
+                className={`flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium transition-colors ${
+                  isActive
+                    ? "bg-primary text-primary-foreground"
+                    : "text-muted-foreground hover:text-foreground hover:bg-secondary"
+                }`}
+              >
+                <item.icon className="h-5 w-5 shrink-0" />
+                <span className="flex-1">{item.name}</span>
+                {item.badge ? (
+                  <span
+                    className={`text-xs font-semibold rounded-full px-1.5 py-0.5 min-w-[1.25rem] text-center ${
+                      isActive
+                        ? "bg-primary-foreground/20 text-primary-foreground"
+                        : "bg-primary text-primary-foreground"
+                    }`}
+                  >
+                    {item.badge > 99 ? "99+" : item.badge}
+                  </span>
+                ) : null}
+              </div>
+            </Link>
+          );
+        })}
+      </>
+    );
+  }
 
   return (
     <div className="flex h-screen bg-muted/30">
-      {/* Sidebar */}
+      {/* Desktop Sidebar */}
       <aside className="w-64 border-r bg-card flex flex-col h-full hidden md:flex">
         <div className="p-6 border-b">
           <Link href="/" className="flex items-center gap-2 font-serif text-xl font-bold text-primary">
@@ -78,30 +128,9 @@ export function Layout({ children }: { children: React.ReactNode }) {
             <span>LocumLink</span>
           </Link>
         </div>
-        
+
         <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
-          {navItems.map((item) => {
-            const isActive = location === item.href || location.startsWith(item.href + '/');
-            return (
-              <Link key={item.href} href={item.href}>
-                <div className={`flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium transition-colors ${
-                  isActive 
-                    ? "bg-primary text-primary-foreground" 
-                    : "text-muted-foreground hover:text-foreground hover:bg-secondary"
-                }`}>
-                  <item.icon className="h-5 w-5 shrink-0" />
-                  <span className="flex-1">{item.name}</span>
-                  {"badge" in item && (item as { badge?: number }).badge ? (
-                    <span className={`text-xs font-semibold rounded-full px-1.5 py-0.5 min-w-[1.25rem] text-center ${
-                      isActive ? "bg-primary-foreground/20 text-primary-foreground" : "bg-primary text-primary-foreground"
-                    }`}>
-                      {((item as { badge?: number }).badge ?? 0) > 99 ? "99+" : (item as { badge?: number }).badge}
-                    </span>
-                  ) : null}
-                </div>
-              </Link>
-            );
-          })}
+          <NavLinks />
         </nav>
 
         <div className="p-4 border-t">
@@ -113,7 +142,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
             </Avatar>
             <div className="flex flex-col flex-1 overflow-hidden">
               <span className="text-sm font-medium truncate">{user?.email}</span>
-              <span className="text-xs text-muted-foreground capitalize">{user?.role?.replace('_', ' ')}</span>
+              <span className="text-xs text-muted-foreground capitalize">{user?.role?.replace(/_/g, " ")}</span>
             </div>
           </div>
           <Button variant="outline" className="w-full justify-start text-muted-foreground" onClick={logout}>
@@ -125,24 +154,81 @@ export function Layout({ children }: { children: React.ReactNode }) {
 
       {/* Main Content */}
       <main className="flex-1 flex flex-col overflow-hidden">
-        {/* Top Header (mobile) */}
-        <header className="h-16 border-b bg-card flex items-center justify-between px-6 shrink-0 md:hidden">
-          <Link href="/" className="flex items-center gap-2 font-serif text-lg font-bold text-primary">
+        {/* Mobile Top Header */}
+        <header className="h-16 border-b bg-card flex items-center justify-between px-4 shrink-0 md:hidden">
+          <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
+            <SheetTrigger asChild>
+              <Button variant="ghost" size="icon" aria-label="Open navigation">
+                <Menu className="h-5 w-5" />
+              </Button>
+            </SheetTrigger>
+
+            <SheetContent side="left" className="w-72 p-0 flex flex-col">
+              {/* Drawer header */}
+              <div className="flex items-center justify-between p-5 border-b">
+                <Link
+                  href="/"
+                  className="flex items-center gap-2 font-serif text-lg font-bold text-primary"
+                  onClick={() => setMobileOpen(false)}
+                >
+                  <ActivitySquare className="h-5 w-5" />
+                  <span>LocumLink</span>
+                </Link>
+                <Button variant="ghost" size="icon" onClick={() => setMobileOpen(false)} aria-label="Close">
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+
+              {/* Nav links */}
+              <nav className="flex-1 overflow-y-auto p-3 space-y-0.5">
+                <NavLinks onNavigate={() => setMobileOpen(false)} />
+              </nav>
+
+              {/* User footer */}
+              <div className="p-4 border-t space-y-3">
+                <div className="flex items-center gap-3">
+                  <Avatar className="h-9 w-9">
+                    <AvatarFallback className="bg-primary/10 text-primary text-sm">
+                      {user?.email?.charAt(0).toUpperCase()}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="flex flex-col flex-1 overflow-hidden">
+                    <span className="text-sm font-medium truncate">{user?.email}</span>
+                    <span className="text-xs text-muted-foreground capitalize">
+                      {user?.role?.replace(/_/g, " ")}
+                    </span>
+                  </div>
+                </div>
+                <Button
+                  variant="outline"
+                  className="w-full justify-start text-muted-foreground"
+                  onClick={() => { setMobileOpen(false); logout(); }}
+                >
+                  <LogOut className="h-4 w-4 mr-2" />
+                  Sign Out
+                </Button>
+              </div>
+            </SheetContent>
+          </Sheet>
+
+          {/* Centre logo */}
+          <Link href="/" className="flex items-center gap-2 font-serif text-lg font-bold text-primary absolute left-1/2 -translate-x-1/2">
             <ActivitySquare className="h-5 w-5" />
             <span>LocumLink</span>
           </Link>
-          <div className="flex items-center gap-2">
-            {(isLocum || isClinic) && unreadCount > 0 && (
+
+          {/* Right: notification bell */}
+          <div className="flex items-center gap-1">
+            {(isLocum || isClinic) && (
               <Link href={isLocum ? "/locum/notifications" : "/clinic/notifications"}>
-                <Button variant="ghost" size="icon" className="relative">
+                <Button variant="ghost" size="icon" className="relative" aria-label="Notifications">
                   <Bell className="h-5 w-5" />
-                  <span className="absolute top-1 right-1 h-2 w-2 rounded-full bg-primary" />
+                  {unreadCount > 0 && (
+                    <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-primary" />
+                  )}
                 </Button>
               </Link>
             )}
-            <Button variant="ghost" size="icon" onClick={logout}>
-              <LogOut className="h-5 w-5" />
-            </Button>
           </div>
         </header>
 
