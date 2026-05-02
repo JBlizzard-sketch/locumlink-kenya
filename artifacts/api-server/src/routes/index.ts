@@ -21,6 +21,7 @@ import matchingRouter from "./matching";
 import templatesRouter from "./templates";
 import messagesRouter from "./messages";
 import platformRouter from "./platform";
+import onboardingRouter from "./onboarding";
 
 const router: IRouter = Router();
 
@@ -46,5 +47,6 @@ router.use(matchingRouter);
 router.use(templatesRouter);
 router.use(messagesRouter);
 router.use(platformRouter);
+router.use(onboardingRouter);
 
 export default router;

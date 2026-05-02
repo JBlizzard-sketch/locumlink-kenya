@@ -70,6 +70,56 @@ export const GetMeResponse = zod.object({
 });
 
 /**
+ * @summary Complete locum profile after registration
+ */
+export const CompleteLocumOnboardingBody = zod.object({
+  firstName: zod.string(),
+  lastName: zod.string(),
+  registrationNumber: zod.string(),
+  registrationBody: zod.enum([
+    "KMPDC",
+    "NCK",
+    "KDTTB",
+    "KPhB",
+    "KORK",
+    "PPB",
+    "other",
+  ]),
+  yearsExperience: zod.number().optional(),
+  primarySpecialtyId: zod.number().optional(),
+  subCounty: zod.string().optional(),
+  mpesaNumber: zod.string().optional(),
+  bio: zod.string().optional(),
+  isAvailableForUrgent: zod.boolean().optional(),
+});
+
+/**
+ * @summary Complete clinic profile after registration
+ */
+export const CompleteClinicOnboardingBody = zod.object({
+  name: zod.string(),
+  facilityType: zod.enum([
+    "general_practice",
+    "specialist_clinic",
+    "hospital",
+    "dental_clinic",
+    "maternity_clinic",
+    "diagnostic_centre",
+    "pharmacy",
+    "physiotherapy",
+    "eye_clinic",
+    "other",
+  ]),
+  address: zod.string(),
+  subCounty: zod.string(),
+  contactName: zod.string(),
+  contactEmail: zod.string().email(),
+  contactPhone: zod.string(),
+  mohFacilityNumber: zod.string().optional(),
+  bio: zod.string().optional(),
+});
+
+/**
  * @summary Live platform statistics (public)
  */
 export const GetPlatformStatsResponse = zod.object({

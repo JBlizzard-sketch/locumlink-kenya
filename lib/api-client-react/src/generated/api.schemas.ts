@@ -738,6 +738,60 @@ export interface VerifyEntityBody {
   notes?: string;
 }
 
+export type LocumOnboardBodyRegistrationBody =
+  (typeof LocumOnboardBodyRegistrationBody)[keyof typeof LocumOnboardBodyRegistrationBody];
+
+export const LocumOnboardBodyRegistrationBody = {
+  KMPDC: "KMPDC",
+  NCK: "NCK",
+  KDTTB: "KDTTB",
+  KPhB: "KPhB",
+  KORK: "KORK",
+  PPB: "PPB",
+  other: "other",
+} as const;
+
+export interface LocumOnboardBody {
+  firstName: string;
+  lastName: string;
+  registrationNumber: string;
+  registrationBody: LocumOnboardBodyRegistrationBody;
+  yearsExperience?: number;
+  primarySpecialtyId?: number;
+  subCounty?: string;
+  mpesaNumber?: string;
+  bio?: string;
+  isAvailableForUrgent?: boolean;
+}
+
+export type ClinicOnboardBodyFacilityType =
+  (typeof ClinicOnboardBodyFacilityType)[keyof typeof ClinicOnboardBodyFacilityType];
+
+export const ClinicOnboardBodyFacilityType = {
+  general_practice: "general_practice",
+  specialist_clinic: "specialist_clinic",
+  hospital: "hospital",
+  dental_clinic: "dental_clinic",
+  maternity_clinic: "maternity_clinic",
+  diagnostic_centre: "diagnostic_centre",
+  pharmacy: "pharmacy",
+  physiotherapy: "physiotherapy",
+  eye_clinic: "eye_clinic",
+  other: "other",
+} as const;
+
+export interface ClinicOnboardBody {
+  name: string;
+  facilityType: ClinicOnboardBodyFacilityType;
+  address: string;
+  subCounty: string;
+  contactName: string;
+  contactEmail: string;
+  contactPhone: string;
+  mohFacilityNumber?: string;
+  bio?: string;
+}
+
 export type ListClinicsParams = {
   subCounty?: string;
   facilityType?: string;

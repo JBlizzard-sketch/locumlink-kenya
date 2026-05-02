@@ -33,6 +33,7 @@ import type {
   Clinic,
   ClinicAnalytics,
   ClinicList,
+  ClinicOnboardBody,
   CreateClinicBody,
   CreateLocumBody,
   CreateShiftBody,
@@ -59,6 +60,7 @@ import type {
   Locum,
   LocumAnalytics,
   LocumList,
+  LocumOnboardBody,
   LoginBody,
   MarkMessagesRead200,
   MessageResponse,
@@ -490,6 +492,178 @@ export function useGetMe<
 
   return { ...query, queryKey: queryOptions.queryKey };
 }
+
+/**
+ * @summary Complete locum profile after registration
+ */
+export const getCompleteLocumOnboardingUrl = () => {
+  return `/api/onboarding/locum`;
+};
+
+export const completeLocumOnboarding = async (
+  locumOnboardBody: LocumOnboardBody,
+  options?: RequestInit,
+): Promise<Locum> => {
+  return customFetch<Locum>(getCompleteLocumOnboardingUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(locumOnboardBody),
+  });
+};
+
+export const getCompleteLocumOnboardingMutationOptions = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof completeLocumOnboarding>>,
+    TError,
+    { data: BodyType<LocumOnboardBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof completeLocumOnboarding>>,
+  TError,
+  { data: BodyType<LocumOnboardBody> },
+  TContext
+> => {
+  const mutationKey = ["completeLocumOnboarding"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof completeLocumOnboarding>>,
+    { data: BodyType<LocumOnboardBody> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return completeLocumOnboarding(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type CompleteLocumOnboardingMutationResult = NonNullable<
+  Awaited<ReturnType<typeof completeLocumOnboarding>>
+>;
+export type CompleteLocumOnboardingMutationBody = BodyType<LocumOnboardBody>;
+export type CompleteLocumOnboardingMutationError = ErrorType<ErrorResponse>;
+
+/**
+ * @summary Complete locum profile after registration
+ */
+export const useCompleteLocumOnboarding = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof completeLocumOnboarding>>,
+    TError,
+    { data: BodyType<LocumOnboardBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof completeLocumOnboarding>>,
+  TError,
+  { data: BodyType<LocumOnboardBody> },
+  TContext
+> => {
+  return useMutation(getCompleteLocumOnboardingMutationOptions(options));
+};
+
+/**
+ * @summary Complete clinic profile after registration
+ */
+export const getCompleteClinicOnboardingUrl = () => {
+  return `/api/onboarding/clinic`;
+};
+
+export const completeClinicOnboarding = async (
+  clinicOnboardBody: ClinicOnboardBody,
+  options?: RequestInit,
+): Promise<Clinic> => {
+  return customFetch<Clinic>(getCompleteClinicOnboardingUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(clinicOnboardBody),
+  });
+};
+
+export const getCompleteClinicOnboardingMutationOptions = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof completeClinicOnboarding>>,
+    TError,
+    { data: BodyType<ClinicOnboardBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof completeClinicOnboarding>>,
+  TError,
+  { data: BodyType<ClinicOnboardBody> },
+  TContext
+> => {
+  const mutationKey = ["completeClinicOnboarding"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof completeClinicOnboarding>>,
+    { data: BodyType<ClinicOnboardBody> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return completeClinicOnboarding(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type CompleteClinicOnboardingMutationResult = NonNullable<
+  Awaited<ReturnType<typeof completeClinicOnboarding>>
+>;
+export type CompleteClinicOnboardingMutationBody = BodyType<ClinicOnboardBody>;
+export type CompleteClinicOnboardingMutationError = ErrorType<ErrorResponse>;
+
+/**
+ * @summary Complete clinic profile after registration
+ */
+export const useCompleteClinicOnboarding = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof completeClinicOnboarding>>,
+    TError,
+    { data: BodyType<ClinicOnboardBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof completeClinicOnboarding>>,
+  TError,
+  { data: BodyType<ClinicOnboardBody> },
+  TContext
+> => {
+  return useMutation(getCompleteClinicOnboardingMutationOptions(options));
+};
 
 /**
  * @summary Live platform statistics (public)

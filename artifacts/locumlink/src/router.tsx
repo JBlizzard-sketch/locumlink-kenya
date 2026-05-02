@@ -47,6 +47,7 @@ import AdminDisputes from "@/pages/admin/disputes";
 import AdminUsers from "@/pages/admin/users";
 import AdminPayments from "@/pages/admin/payments";
 
+import Onboarding from "@/pages/onboarding";
 import NotFound from "@/pages/not-found";
 
 export default function Router() {
@@ -56,7 +57,8 @@ export default function Router() {
       <Route path="/shifts" component={PublicShiftBoard} />
       <Route path="/login" component={Login} />
       <Route path="/register" component={Register} />
-      
+      <Route path="/onboarding" component={Onboarding} />
+
       {/* Locum Routes */}
       <Route path="/locum/dashboard">{() => <ProtectedRoute allowedRoles={["locum"]}><Layout><LocumDashboard /></Layout></ProtectedRoute>}</Route>
       <Route path="/locum/shifts">{() => <ProtectedRoute allowedRoles={["locum"]}><Layout><LocumShifts /></Layout></ProtectedRoute>}</Route>

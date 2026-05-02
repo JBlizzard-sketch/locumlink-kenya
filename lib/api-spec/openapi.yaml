@@ -133,6 +133,57 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
+  # ONBOARDING
+  /onboarding/locum:
+    post:
+      operationId: completeLocumOnboarding
+      tags: [auth]
+      summary: Complete locum profile after registration
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LocumOnboardBody"
+      responses:
+        "201":
+          description: Locum profile created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Locum"
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /onboarding/clinic:
+    post:
+      operationId: completeClinicOnboarding
+      tags: [auth]
+      summary: Complete clinic profile after registration
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ClinicOnboardBody"
+      responses:
+        "201":
+          description: Clinic profile created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Clinic"
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
   # PLATFORM
   /platform/stats:
     get:
@@ -3069,3 +3120,66 @@ components:
           type: string
       required:
         - status
+
+    # ONBOARDING SCHEMAS
+    LocumOnboardBody:
+      type: object
+      properties:
+        firstName:
+          type: string
+        lastName:
+          type: string
+        registrationNumber:
+          type: string
+        registrationBody:
+          type: string
+          enum: [KMPDC, NCK, KDTTB, KPhB, KORK, PPB, other]
+        yearsExperience:
+          type: integer
+        primarySpecialtyId:
+          type: integer
+        subCounty:
+          type: string
+        mpesaNumber:
+          type: string
+        bio:
+          type: string
+        isAvailableForUrgent:
+          type: boolean
+      required:
+        - firstName
+        - lastName
+        - registrationNumber
+        - registrationBody
+
+    ClinicOnboardBody:
+      type: object
+      properties:
+        name:
+          type: string
+        facilityType:
+          type: string
+          enum: [general_practice, specialist_clinic, hospital, dental_clinic, maternity_clinic, diagnostic_centre, pharmacy, physiotherapy, eye_clinic, other]
+        address:
+          type: string
+        subCounty:
+          type: string
+        contactName:
+          type: string
+        contactEmail:
+          type: string
+          format: email
+        contactPhone:
+          type: string
+        mohFacilityNumber:
+          type: string
+        bio:
+          type: string
+      required:
+        - name
+        - facilityType
+        - address
+        - subCounty
+        - contactName
+        - contactEmail
+        - contactPhone

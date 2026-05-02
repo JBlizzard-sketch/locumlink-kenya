@@ -39,8 +39,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       await registerMutation.mutateAsync({ data });
       await refetch();
-      toast({ title: "Account created successfully" });
-      setLocation(data.role === "locum" ? "/locum/dashboard" : "/clinic/dashboard");
+      toast({ title: "Account created — let's set up your profile!" });
+      setLocation("/onboarding");
     } catch (error: any) {
       toast({
         title: "Registration failed",
