@@ -859,6 +859,7 @@ export const ListMyClinicApplicationsStatus = {
 } as const;
 
 export type ListLocumsParams = {
+  search?: string;
   specialtyId?: number;
   verificationStatus?: string;
   subCounty?: string;

@@ -502,6 +502,10 @@ paths:
       tags: [locums]
       summary: List verified locum professionals
       parameters:
+        - name: search
+          in: query
+          schema:
+            type: string
         - name: specialtyId
           in: query
           schema:

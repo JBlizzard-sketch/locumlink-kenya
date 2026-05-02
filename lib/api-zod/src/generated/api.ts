@@ -533,6 +533,7 @@ export const listLocumsQueryPageDefault = 1;
 export const listLocumsQueryLimitDefault = 20;
 
 export const ListLocumsQueryParams = zod.object({
+  search: zod.coerce.string().optional(),
   specialtyId: zod.coerce.number().optional(),
   verificationStatus: zod.coerce.string().optional(),
   subCounty: zod.coerce.string().optional(),

@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { db } from "@workspace/db";
 import { locumsTable, availabilitySlotsTable, specialtiesTable } from "@workspace/db";
-import { eq, and, SQL } from "drizzle-orm";
+import { eq, and, SQL, ilike, or, sql } from "drizzle-orm";
 import { CreateLocumBody, UpdateLocumBody, SetLocumAvailabilityBody } from "@workspace/api-zod";
 import { authenticate } from "../middlewares/auth";
 
@@ -22,6 +22,16 @@ router.get("/locums", async (req, res) => {
     if (req.query.specialtyId) conditions.push(eq(locumsTable.primarySpecialtyId, parseInt(req.query.specialtyId as string)));
     if (req.query.verificationStatus) conditions.push(eq(locumsTable.verificationStatus, req.query.verificationStatus as string));
     if (req.query.subCounty) conditions.push(eq(locumsTable.subCounty, req.query.subCounty as string));
+    if (req.query.search) {
+      const term = `%${req.query.search}%`;
+      conditions.push(
+        or(
+          ilike(locumsTable.firstName, term),
+          ilike(locumsTable.lastName, term),
+          ilike(sql`${locumsTable.firstName} || ' ' || ${locumsTable.lastName}`, term),
+        )!
+      );
+    }
     const query = db.select().from(locumsTable);
     const raw = conditions.length > 0
       ? await query.where(and(...conditions)).limit(limit).offset(offset)
