@@ -151,33 +151,29 @@ async function seed() {
   const today = new Date();
 
   // ─── SHIFTS ──────────────────────────────────────────────────────────────────
-  const existingShifts = await db.select().from(shiftsTable).where(eq(shiftsTable.clinicId, clinic1.id)).limit(1);
-  if (existingShifts.length > 0) {
-    console.log("  ✓ shifts (already seeded — skipping)");
-    console.log("\n✅ Seed complete!\n\nDemo credentials:");
-    console.log("  Admin:  admin@locumlink.co.ke  / Admin@2024!");
-    console.log("  Clinic: hr@agakhanklinic.co.ke / Clinic@2024!");
-    console.log("  Locum:  dr.wanjiku@gmail.com   / Locum@2024!");
-    return;
+  const existingShifts = await db.select().from(shiftsTable).where(eq(shiftsTable.clinicId, clinic1.id));
+  let shiftRows;
+  if (existingShifts.length >= 10) {
+    console.log("  ✓ shifts (already seeded — using existing)");
+    shiftRows = existingShifts;
+  } else {
+    shiftRows = await db.insert(shiftsTable).values([
+      // Future open shifts
+      { clinicId: clinic1.id, specialtyId: gpId,    title: "Saturday GP Cover — Westlands",        description: "Busy Saturday outpatient session. 30–40 patients. EPIC EMR in use.", shiftDate: dateStr(addDays(today, 2)),  startTime: "08:00", endTime: "14:00", rate: 12000, positionsAvailable: 1, urgency: "normal",    status: "open", minYearsExperience: 3 },
+      { clinicId: clinic1.id, specialtyId: nurseId,  title: "Night Shift Nurse — General Ward",      description: "Night nursing cover for 20-bed general ward. IV line management required.", shiftDate: dateStr(addDays(today, 4)),  startTime: "19:00", endTime: "07:00", rate: 5500,  positionsAvailable: 2, urgency: "urgent",    status: "open", minYearsExperience: 2 },
+      { clinicId: clinic1.id, specialtyId: anaesId,  title: "Emergency: Anaesthetist Needed",         description: "Surgical list: 2 laparotomies + 1 C-section. Full anaesthetic workup required.", shiftDate: dateStr(addDays(today, 7)),  startTime: "07:00", endTime: "17:00", rate: 30000, positionsAvailable: 1, urgency: "emergency", status: "open", minYearsExperience: 5, specificRequirements: "Obstetric anaesthesia experience required" },
+      { clinicId: clinic2?.id ?? clinic1.id, specialtyId: paedId,   title: "Paediatrics Weekend Clinic",           description: "Saturday paediatric OPD. High volume. Bring your stethoscope!", shiftDate: dateStr(addDays(today, 9)),  startTime: "09:00", endTime: "15:00", rate: 15000, positionsAvailable: 1, urgency: "normal",    status: "open", minYearsExperience: 4 },
+      { clinicId: clinic2?.id ?? clinic1.id, specialtyId: icuId,    title: "ICU Nurse — Overnight Cover",          description: "3-bed ICU overnight nursing. Ventilator-competent nurses preferred.", shiftDate: dateStr(addDays(today, 5)),  startTime: "20:00", endTime: "08:00", rate: 8500,  positionsAvailable: 1, urgency: "urgent",    status: "open", minYearsExperience: 3 },
+      { clinicId: clinic2?.id ?? clinic1.id, specialtyId: emId,     title: "Emergency Physician — Public Holiday", description: "Emergency cover for the public holiday weekend. Fast-paced environment.", shiftDate: dateStr(addDays(today, 14)), startTime: "08:00", endTime: "20:00", rate: 22000, positionsAvailable: 1, urgency: "normal",    status: "open", minYearsExperience: 5 },
+
+      // Historical completed shifts (for analytics data)
+      { clinicId: clinic1.id, specialtyId: gpId,    title: "GP Cover — March Weekend",     description: "March weekend outpatient cover.", shiftDate: dateStr(subDays(today, 60)), startTime: "08:00", endTime: "14:00", rate: 12000, positionsAvailable: 1, urgency: "normal", status: "completed", minYearsExperience: 3 },
+      { clinicId: clinic1.id, specialtyId: gpId,    title: "GP Cover — February",          description: "February weekend cover.", shiftDate: dateStr(subDays(today, 90)), startTime: "08:00", endTime: "14:00", rate: 11000, positionsAvailable: 1, urgency: "normal", status: "completed", minYearsExperience: 3 },
+      { clinicId: clinic1.id, specialtyId: nurseId,  title: "Night Nurse — January",        description: "January night nursing.", shiftDate: dateStr(subDays(today, 120)), startTime: "19:00", endTime: "07:00", rate: 5000, positionsAvailable: 1, urgency: "normal", status: "completed", minYearsExperience: 2 },
+      { clinicId: clinic2?.id ?? clinic1.id, specialtyId: gpId, title: "GP Cover — April",  description: "April cover.", shiftDate: dateStr(subDays(today, 30)), startTime: "09:00", endTime: "15:00", rate: 13000, positionsAvailable: 1, urgency: "normal", status: "completed", minYearsExperience: 3 },
+    ]).onConflictDoNothing().returning();
+    console.log(`  ✓ ${shiftRows.length} shifts`);
   }
-
-  const shiftRows = await db.insert(shiftsTable).values([
-    // Future open shifts
-    { clinicId: clinic1.id, specialtyId: gpId,    title: "Saturday GP Cover — Westlands",        description: "Busy Saturday outpatient session. 30–40 patients. EPIC EMR in use.", shiftDate: dateStr(addDays(today, 2)),  startTime: "08:00", endTime: "14:00", rate: 12000, positionsAvailable: 1, urgency: "normal",    status: "open", minYearsExperience: 3 },
-    { clinicId: clinic1.id, specialtyId: nurseId,  title: "Night Shift Nurse — General Ward",      description: "Night nursing cover for 20-bed general ward. IV line management required.", shiftDate: dateStr(addDays(today, 4)),  startTime: "19:00", endTime: "07:00", rate: 5500,  positionsAvailable: 2, urgency: "urgent",    status: "open", minYearsExperience: 2 },
-    { clinicId: clinic1.id, specialtyId: anaesId,  title: "Emergency: Anaesthetist Needed",         description: "Surgical list: 2 laparotomies + 1 C-section. Full anaesthetic workup required.", shiftDate: dateStr(addDays(today, 7)),  startTime: "07:00", endTime: "17:00", rate: 30000, positionsAvailable: 1, urgency: "emergency", status: "open", minYearsExperience: 5, specificRequirements: "Obstetric anaesthesia experience required" },
-    { clinicId: clinic2?.id ?? clinic1.id, specialtyId: paedId,   title: "Paediatrics Weekend Clinic",           description: "Saturday paediatric OPD. High volume. Bring your stethoscope!", shiftDate: dateStr(addDays(today, 9)),  startTime: "09:00", endTime: "15:00", rate: 15000, positionsAvailable: 1, urgency: "normal",    status: "open", minYearsExperience: 4 },
-    { clinicId: clinic2?.id ?? clinic1.id, specialtyId: icuId,    title: "ICU Nurse — Overnight Cover",          description: "3-bed ICU overnight nursing. Ventilator-competent nurses preferred.", shiftDate: dateStr(addDays(today, 5)),  startTime: "20:00", endTime: "08:00", rate: 8500,  positionsAvailable: 1, urgency: "urgent",    status: "open", minYearsExperience: 3 },
-    { clinicId: clinic2?.id ?? clinic1.id, specialtyId: emId,     title: "Emergency Physician — Public Holiday", description: "Emergency cover for the public holiday weekend. Fast-paced environment.", shiftDate: dateStr(addDays(today, 14)), startTime: "08:00", endTime: "20:00", rate: 22000, positionsAvailable: 1, urgency: "normal",    status: "open", minYearsExperience: 5 },
-
-    // Historical completed shifts (for analytics data)
-    { clinicId: clinic1.id, specialtyId: gpId,    title: "GP Cover — March Weekend",     description: "March weekend outpatient cover.", shiftDate: dateStr(subDays(today, 60)), startTime: "08:00", endTime: "14:00", rate: 12000, positionsAvailable: 1, urgency: "normal", status: "completed", minYearsExperience: 3 },
-    { clinicId: clinic1.id, specialtyId: gpId,    title: "GP Cover — February",          description: "February weekend cover.", shiftDate: dateStr(subDays(today, 90)), startTime: "08:00", endTime: "14:00", rate: 11000, positionsAvailable: 1, urgency: "normal", status: "completed", minYearsExperience: 3 },
-    { clinicId: clinic1.id, specialtyId: nurseId,  title: "Night Nurse — January",        description: "January night nursing.", shiftDate: dateStr(subDays(today, 120)), startTime: "19:00", endTime: "07:00", rate: 5000, positionsAvailable: 1, urgency: "normal", status: "completed", minYearsExperience: 2 },
-    { clinicId: clinic2?.id ?? clinic1.id, specialtyId: gpId, title: "GP Cover — April",  description: "April cover.", shiftDate: dateStr(subDays(today, 30)), startTime: "09:00", endTime: "15:00", rate: 13000, positionsAvailable: 1, urgency: "normal", status: "completed", minYearsExperience: 3 },
-  ]).onConflictDoNothing().returning();
-
-  console.log(`  ✓ ${shiftRows.length} shifts`);
 
   if (!locum1 || shiftRows.length < 7) {
     console.log("\n✅ Seed complete (partial — no historical bookings)");
@@ -273,15 +269,20 @@ async function seed() {
   // ─── NOTIFICATIONS ───────────────────────────────────────────────────────────
   if (lu1) {
     await db.insert(notificationsTable).values([
-      { userId: lu1.id, channel: "in_app", type: "booking_confirmed", title: "Booking Confirmed", content: "Your booking for 'Saturday GP Cover — Westlands' has been confirmed. Please sign the contract.", status: "sent" },
-      { userId: lu1.id, channel: "in_app", type: "payment_released",  title: "Payment Released",  content: "KES 10,800 has been sent to your M-Pesa for the March weekend shift.", status: "read" },
-      { userId: lu1.id, channel: "in_app", type: "rating_received",   title: "New Rating",        content: "You received a 5-star rating from Aga Khan Primary Care.", status: "read" },
+      { userId: lu1.id, channel: "in_app", type: "booking_confirmed",  title: "Booking Confirmed",       content: "Your booking for 'Saturday GP Cover — Westlands' has been confirmed. Please sign the contract.", status: "sent" },
+      { userId: lu1.id, channel: "in_app", type: "new_shift",          title: "New Shift Match",          content: "A new urgent shift at Karen Hospital matches your specialty — 92% match score!", status: "sent" },
+      { userId: lu1.id, channel: "in_app", type: "shift_reminder",     title: "Shift Tomorrow",           content: "Reminder: You have a GP shift at Aga Khan Primary Care tomorrow at 07:00. Please check in 15 minutes early.", status: "sent" },
+      { userId: lu1.id, channel: "in_app", type: "payment_received",   title: "Payment Released",         content: "KES 10,800 has been sent to your M-Pesa for the March weekend shift at Westlands Medical Centre.", status: "read" },
+      { userId: lu1.id, channel: "in_app", type: "rating_received",    title: "New Rating",               content: "You received a 5-star rating from Aga Khan Primary Care. They noted: 'Punctual, professional, and excellent bedside manner.'", status: "read" },
+      { userId: lu1.id, channel: "in_app", type: "application_update", title: "Application Shortlisted",  content: "Your application for 'Sunday Paeds Ward Cover — Parklands' has been shortlisted. The clinic will confirm within 24 hours.", status: "sent" },
     ]).onConflictDoNothing();
   }
 
   if (cu1) {
     await db.insert(notificationsTable).values([
-      { userId: cu1.id, channel: "in_app", type: "application_received", title: "New Application", content: "Dr. Grace Wanjiku has applied for 'Saturday GP Cover — Westlands'.", status: "sent" },
+      { userId: cu1.id, channel: "in_app", type: "application_received", title: "New Application",        content: "Dr. Grace Wanjiku has applied for 'Saturday GP Cover — Westlands'. 8 years experience, 92% match.", status: "sent" },
+      { userId: cu1.id, channel: "in_app", type: "booking_confirmed",    title: "Shift Filled",            content: "Dr. Amina Ochieng has been confirmed for the Sunday Paeds shift. Contract sent for signature.", status: "sent" },
+      { userId: cu1.id, channel: "in_app", type: "payment_received",     title: "Payment Processed",       content: "KES 10,800 escrow payment for Dr. Wanjiku's March shift has been released. Transaction ID: MP2024031502.", status: "read" },
     ]).onConflictDoNothing();
   }
 

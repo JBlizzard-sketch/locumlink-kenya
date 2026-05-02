@@ -15,11 +15,18 @@ import {
   Star
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { useListNotifications, getListNotificationsQueryKey } from "@workspace/api-client-react";
 
 export function Layout({ children }: { children: React.ReactNode }) {
   const { user, logout } = useAuth();
   const [location] = useLocation();
+
+  const isLocum = user?.role === "locum";
+  const { data: notifData } = useListNotifications(undefined, {
+    query: { enabled: isLocum, refetchInterval: 30_000, queryKey: getListNotificationsQueryKey() },
+  });
+  const unreadCount = notifData?.data?.filter(n => n.status !== "read").length ?? 0;
 
   const locumNav = [
     { name: "Dashboard", href: "/locum/dashboard", icon: LayoutDashboard },
@@ -28,7 +35,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
     { name: "My Bookings", href: "/locum/bookings", icon: CalendarDays },
     { name: "Earnings", href: "/locum/earnings", icon: Wallet },
     { name: "Documents", href: "/locum/documents", icon: FileText },
-    { name: "Notifications", href: "/locum/notifications", icon: Bell },
+    { name: "Notifications", href: "/locum/notifications", icon: Bell, badge: unreadCount > 0 ? unreadCount : undefined },
     { name: "Ratings", href: "/locum/ratings", icon: Star },
     { name: "Profile", href: "/locum/profile", icon: User },
   ];
@@ -76,8 +83,15 @@ export function Layout({ children }: { children: React.ReactNode }) {
                     ? "bg-primary text-primary-foreground" 
                     : "text-muted-foreground hover:text-foreground hover:bg-secondary"
                 }`}>
-                  <item.icon className="h-5 w-5" />
-                  {item.name}
+                  <item.icon className="h-5 w-5 shrink-0" />
+                  <span className="flex-1">{item.name}</span>
+                  {"badge" in item && (item as { badge?: number }).badge ? (
+                    <span className={`text-xs font-semibold rounded-full px-1.5 py-0.5 min-w-[1.25rem] text-center ${
+                      isActive ? "bg-primary-foreground/20 text-primary-foreground" : "bg-primary text-primary-foreground"
+                    }`}>
+                      {((item as { badge?: number }).badge ?? 0) > 99 ? "99+" : (item as { badge?: number }).badge}
+                    </span>
+                  ) : null}
                 </div>
               </Link>
             );
@@ -105,15 +119,25 @@ export function Layout({ children }: { children: React.ReactNode }) {
 
       {/* Main Content */}
       <main className="flex-1 flex flex-col overflow-hidden">
-        {/* Top Header */}
+        {/* Top Header (mobile) */}
         <header className="h-16 border-b bg-card flex items-center justify-between px-6 shrink-0 md:hidden">
-           <Link href="/" className="flex items-center gap-2 font-serif text-lg font-bold text-primary">
+          <Link href="/" className="flex items-center gap-2 font-serif text-lg font-bold text-primary">
             <ActivitySquare className="h-5 w-5" />
             <span>LocumLink</span>
           </Link>
-          <Button variant="ghost" size="icon" onClick={logout}>
-            <LogOut className="h-5 w-5" />
-          </Button>
+          <div className="flex items-center gap-2">
+            {isLocum && unreadCount > 0 && (
+              <Link href="/locum/notifications">
+                <Button variant="ghost" size="icon" className="relative">
+                  <Bell className="h-5 w-5" />
+                  <span className="absolute top-1 right-1 h-2 w-2 rounded-full bg-primary" />
+                </Button>
+              </Link>
+            )}
+            <Button variant="ghost" size="icon" onClick={logout}>
+              <LogOut className="h-5 w-5" />
+            </Button>
+          </div>
         </header>
 
         {/* Page Content */}

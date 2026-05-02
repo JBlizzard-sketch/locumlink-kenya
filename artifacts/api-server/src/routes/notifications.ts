@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { db } from "@workspace/db";
 import { notificationsTable, notificationPreferencesTable } from "@workspace/db";
-import { eq, and } from "drizzle-orm";
+import { eq, and, ne } from "drizzle-orm";
 import { UpdateNotificationPreferencesBody } from "@workspace/api-zod";
 import { authenticate } from "../middlewares/auth";
 
@@ -68,6 +68,19 @@ router.post("/notifications/:id/read", authenticate, async (req, res) => {
     res.json({ message: "Marked as read" });
   } catch (err) {
     req.log.error({ err }, "Mark read error");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+router.post("/notifications/read-all", authenticate, async (req, res) => {
+  const { userId } = (req as any).user;
+  try {
+    await db.update(notificationsTable)
+      .set({ status: "read", readAt: new Date() })
+      .where(and(eq(notificationsTable.userId, userId), ne(notificationsTable.status, "read")));
+    res.json({ message: "All notifications marked as read" });
+  } catch (err) {
+    req.log.error({ err }, "Mark all read error");
     res.status(500).json({ error: "Internal server error" });
   }
 });

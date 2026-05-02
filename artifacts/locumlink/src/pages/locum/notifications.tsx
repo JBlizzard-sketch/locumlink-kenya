@@ -1,50 +1,82 @@
-import { useListNotifications, useMarkNotificationRead } from "@workspace/api-client-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useListNotifications, useMarkNotificationRead, getListNotificationsQueryKey } from "@workspace/api-client-react";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Bell, Check, Clock } from "lucide-react";
+import { Bell, Check, Clock, CheckCheck } from "lucide-react";
 import { formatDistanceToNow, parseISO } from "date-fns";
 import { useQueryClient } from "@tanstack/react-query";
-import { getListNotificationsQueryKey } from "@workspace/api-client-react";
+import { useState } from "react";
+
+const BASE_URL = import.meta.env.BASE_URL as string;
+
+const TYPE_COLORS: Record<string, string> = {
+  application_update: "bg-blue-500",
+  booking_confirmed: "bg-emerald-500",
+  payment_received: "bg-green-600",
+  shift_reminder: "bg-amber-500",
+  verification_update: "bg-purple-500",
+  dispute_update: "bg-red-500",
+  new_shift: "bg-cyan-500",
+};
 
 export default function LocumNotifications() {
   const { data: notifications, isLoading } = useListNotifications();
   const markRead = useMarkNotificationRead();
   const queryClient = useQueryClient();
+  const [markingAll, setMarkingAll] = useState(false);
 
   const handleMarkRead = async (id: number) => {
     try {
       await markRead.mutateAsync({ id });
       queryClient.invalidateQueries({ queryKey: getListNotificationsQueryKey() });
-    } catch (e) {
+    } catch {
       // ignore
     }
   };
 
   const handleMarkAllRead = async () => {
-    if (!notifications?.data) return;
-    const unreadIds = notifications.data.filter(n => n.status === 'unread').map(n => n.id);
-    if (unreadIds.length === 0) return;
-    
+    setMarkingAll(true);
     try {
-      if (unreadIds[0]) await markRead.mutateAsync({ id: unreadIds[0] });
+      const token = localStorage.getItem("token");
+      await fetch(`${BASE_URL}api/notifications/read-all`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+      });
       queryClient.invalidateQueries({ queryKey: getListNotificationsQueryKey() });
-    } catch (e) {
+    } catch {
       // ignore
+    } finally {
+      setMarkingAll(false);
     }
   };
 
+  const unreadCount = notifications?.data?.filter(n => n.status !== "read").length ?? 0;
+
   return (
     <div className="space-y-6 max-w-4xl mx-auto">
-      <div className="flex justify-between items-center">
+      <div className="flex justify-between items-start gap-4">
         <div>
           <h1 className="text-3xl font-bold font-serif tracking-tight">Notifications</h1>
           <p className="text-muted-foreground mt-1">Updates on your applications, bookings, and payments.</p>
         </div>
-        <Button variant="outline" onClick={handleMarkAllRead} disabled={markRead.isPending}>
-          <Check className="h-4 w-4 mr-2" /> Mark all as read
-        </Button>
+        <div className="flex items-center gap-3 shrink-0">
+          {unreadCount > 0 && (
+            <Badge className="bg-primary text-primary-foreground">{unreadCount} unread</Badge>
+          )}
+          <Button
+            variant="outline"
+            onClick={handleMarkAllRead}
+            disabled={markingAll || unreadCount === 0}
+            className="gap-2"
+          >
+            <CheckCheck className="h-4 w-4" />
+            Mark all read
+          </Button>
+        </div>
       </div>
 
       <Card>
@@ -66,41 +98,54 @@ export default function LocumNotifications() {
             </div>
           ) : (
             <div className="divide-y">
-              {notifications?.data?.map((notification) => (
-                <div 
-                  key={notification.id} 
-                  className={`p-6 transition-colors hover:bg-muted/30 flex gap-4 ${notification.status === 'unread' ? 'bg-primary/5' : ''}`}
-                >
-                  <div className="mt-1">
-                    {notification.status === 'unread' ? (
-                      <div className="h-2.5 w-2.5 rounded-full bg-primary mt-1.5" />
-                    ) : (
-                      <Bell className="h-4 w-4 text-muted-foreground" />
-                    )}
-                  </div>
-                  <div className="flex-1 space-y-1">
-                    <div className="flex items-center justify-between">
-                      <p className={`text-sm font-medium ${notification.status === 'unread' ? 'text-foreground' : 'text-muted-foreground'}`}>
-                        {notification.title}
-                      </p>
-                      {notification.createdAt && (
-                        <span className="text-xs text-muted-foreground flex items-center">
-                          <Clock className="h-3 w-3 mr-1" />
-                          {formatDistanceToNow(parseISO(notification.createdAt), { addSuffix: true })}
-                        </span>
+              {notifications?.data?.map((notification) => {
+                const isUnread = notification.status !== "read";
+                const dotColor = TYPE_COLORS[notification.type ?? ""] ?? "bg-primary";
+                return (
+                  <div
+                    key={notification.id}
+                    className={`p-5 transition-colors hover:bg-muted/30 flex gap-4 ${isUnread ? "bg-primary/5" : ""}`}
+                  >
+                    <div className="mt-1.5 shrink-0">
+                      {isUnread ? (
+                        <div className={`h-2.5 w-2.5 rounded-full ${dotColor}`} />
+                      ) : (
+                        <Bell className="h-4 w-4 text-muted-foreground" />
                       )}
                     </div>
-                    <p className={`text-sm ${notification.status === 'unread' ? 'text-muted-foreground' : 'text-muted-foreground/70'}`}>
-                      {notification.content}
-                    </p>
+                    <div className="flex-1 min-w-0 space-y-1">
+                      <div className="flex items-start justify-between gap-2">
+                        <p className={`text-sm font-medium leading-snug ${isUnread ? "text-foreground" : "text-muted-foreground"}`}>
+                          {notification.title}
+                        </p>
+                        <span className="text-xs text-muted-foreground flex items-center gap-1 shrink-0 mt-0.5">
+                          <Clock className="h-3 w-3" />
+                          {notification.createdAt && formatDistanceToNow(parseISO(notification.createdAt), { addSuffix: true })}
+                        </span>
+                      </div>
+                      <p className={`text-sm leading-relaxed ${isUnread ? "text-muted-foreground" : "text-muted-foreground/70"}`}>
+                        {notification.content}
+                      </p>
+                      {notification.type && (
+                        <Badge variant="outline" className="text-xs capitalize mt-1">
+                          {notification.type.replace(/_/g, " ")}
+                        </Badge>
+                      )}
+                    </div>
+                    {isUnread && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => handleMarkRead(notification.id)}
+                        className="h-8 w-8 shrink-0 mt-0.5"
+                        title="Mark as read"
+                      >
+                        <Check className="h-4 w-4" />
+                      </Button>
+                    )}
                   </div>
-                  {notification.status === 'unread' && (
-                    <Button variant="ghost" size="icon" onClick={() => handleMarkRead(notification.id)} className="h-8 w-8 shrink-0">
-                      <Check className="h-4 w-4" />
-                    </Button>
-                  )}
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </CardContent>

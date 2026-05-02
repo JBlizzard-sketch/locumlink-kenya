@@ -1,16 +1,24 @@
 import { useState } from "react";
 import { useGetVerificationQueue, getGetVerificationQueueQueryKey, useAdminVerifyLocum, useAdminVerifyClinic } from "@workspace/api-client-react";
-import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { useQueryClient } from "@tanstack/react-query";
 import { format, parseISO } from "date-fns";
-import { CheckCircle2, XCircle, FileText, User, Building2 } from "lucide-react";
+import { CheckCircle2, XCircle, FileText, User, Building2, ExternalLink } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
+
+const BASE_URL = import.meta.env.BASE_URL as string;
+
+const DOC_LABELS: Record<number, string> = {
+  0: "National ID / Passport",
+  1: "Practicing Certificate",
+  2: "Registration Certificate",
+};
 
 export default function AdminVerification() {
   const [activeTab, setActiveTab] = useState<"locum" | "clinic">("locum");
@@ -99,17 +107,28 @@ export default function AdminVerification() {
                         </div>
                       )}
                       
-                      {item.documents && item.documents.length > 0 && (
+                      {item.documents && item.documents.length > 0 ? (
                         <div>
                           <p className="text-sm text-muted-foreground mb-2">Uploaded Documents</p>
                           <div className="flex flex-wrap gap-2">
                             {item.documents.map((doc, idx) => (
-                              <Badge key={idx} variant="secondary" className="px-3 py-1 cursor-pointer hover:bg-secondary/80">
-                                <FileText className="h-3 w-3 mr-1" /> Document {idx + 1}
-                              </Badge>
+                              <a
+                                key={idx}
+                                href={`${BASE_URL}api/storage${doc}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                              >
+                                <Badge variant="secondary" className="px-3 py-1.5 cursor-pointer hover:bg-secondary/80 gap-1.5 border hover:border-primary/40 transition-colors">
+                                  <FileText className="h-3 w-3" />
+                                  {DOC_LABELS[idx] ?? `Document ${idx + 1}`}
+                                  <ExternalLink className="h-3 w-3 opacity-60" />
+                                </Badge>
+                              </a>
                             ))}
                           </div>
                         </div>
+                      ) : (
+                        <div className="text-sm text-muted-foreground italic">No documents uploaded yet.</div>
                       )}
                     </div>
 
