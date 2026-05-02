@@ -87,7 +87,7 @@ export default function AdminUsers() {
                       </div>
                       <div className="flex flex-wrap gap-x-4 gap-y-1 mt-1 text-xs text-muted-foreground">
                         {locum.registrationNumber && <span>Reg: {locum.registrationNumber}</span>}
-                        {locum.yearsOfExperience != null && <span>{locum.yearsOfExperience} yrs exp</span>}
+                        {locum.yearsExperience != null && <span>{locum.yearsExperience} yrs exp</span>}
                         {locum.totalShiftsCompleted != null && <span>{locum.totalShiftsCompleted} shifts completed</span>}
                         {locum.reliabilityScore && <span>Reliability: {parseFloat(locum.reliabilityScore).toFixed(0)}%</span>}
                       </div>

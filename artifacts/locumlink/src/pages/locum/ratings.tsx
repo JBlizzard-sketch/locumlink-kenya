@@ -9,7 +9,7 @@ export default function LocumRatings() {
   const locumId = locum?.id ?? 0;
 
   const { data: ratingsData, isLoading: ratingsLoading } = useGetLocumRatings(locumId, {
-    query: { enabled: !!locumId }
+    query: { queryKey: [`/api/locums/${locumId}/ratings`], enabled: !!locumId }
   });
 
   const isLoading = locumLoading || ratingsLoading;
