@@ -26,13 +26,13 @@ export default function LocumBookingDetail() {
   const handleAction = async (action: 'sign' | 'checkin' | 'complete') => {
     try {
       if (action === 'sign') {
-        await signMutation.mutateAsync({ bookingId });
+        await signMutation.mutateAsync({ id: bookingId });
         toast({ title: "Contract signed successfully" });
       } else if (action === 'checkin') {
-        await checkInMutation.mutateAsync({ bookingId });
+        await checkInMutation.mutateAsync({ id: bookingId });
         toast({ title: "Checked in successfully" });
       } else if (action === 'complete') {
-        await completeMutation.mutateAsync({ bookingId });
+        await completeMutation.mutateAsync({ id: bookingId });
         toast({ title: "Shift marked as completed" });
       }
       queryClient.invalidateQueries({ queryKey: getGetBookingQueryKey(bookingId) });

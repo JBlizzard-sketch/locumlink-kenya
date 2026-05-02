@@ -85,7 +85,7 @@ router.get("/shifts/matched", authenticate, async (req, res) => {
 });
 
 router.get("/shifts/:id", async (req, res) => {
-  const id = parseInt(req.params.id);
+  const id = parseInt(req.params.id as string);
   if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
   try {
     const [shift] = await db.select().from(shiftsTable).where(eq(shiftsTable.id, id)).limit(1);
@@ -99,7 +99,7 @@ router.get("/shifts/:id", async (req, res) => {
 });
 
 router.patch("/shifts/:id", authenticate, async (req, res) => {
-  const id = parseInt(req.params.id);
+  const id = parseInt(req.params.id as string);
   if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
   const parse = UpdateShiftBody.safeParse(req.body);
   if (!parse.success) {
@@ -120,7 +120,7 @@ router.patch("/shifts/:id", authenticate, async (req, res) => {
 });
 
 router.delete("/shifts/:id", authenticate, async (req, res) => {
-  const id = parseInt(req.params.id);
+  const id = parseInt(req.params.id as string);
   if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
   try {
     await db.update(shiftsTable).set({ status: "cancelled", updatedAt: new Date() }).where(eq(shiftsTable.id, id));

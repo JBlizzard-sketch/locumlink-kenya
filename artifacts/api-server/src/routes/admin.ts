@@ -44,7 +44,7 @@ router.get("/admin/verification-queue", authenticate, requireRole("platform_admi
 });
 
 router.post("/admin/locums/:id/verify", authenticate, requireRole("platform_admin"), async (req, res) => {
-  const id = parseInt(req.params.id);
+  const id = parseInt(req.params.id as string);
   if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
   const parse = AdminVerifyLocumBody.safeParse(req.body);
   if (!parse.success) {
@@ -66,7 +66,7 @@ router.post("/admin/locums/:id/verify", authenticate, requireRole("platform_admi
 });
 
 router.post("/admin/clinics/:id/verify", authenticate, requireRole("platform_admin"), async (req, res) => {
-  const id = parseInt(req.params.id);
+  const id = parseInt(req.params.id as string);
   if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
   const parse = AdminVerifyClinicBody.safeParse(req.body);
   if (!parse.success) {
@@ -88,7 +88,7 @@ router.post("/admin/clinics/:id/verify", authenticate, requireRole("platform_adm
 });
 
 router.post("/admin/disputes/:id/resolve", authenticate, requireRole("platform_admin"), async (req, res) => {
-  const id = parseInt(req.params.id);
+  const id = parseInt(req.params.id as string);
   if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
   const parse = AdminResolveDisputeBody.safeParse(req.body);
   if (!parse.success) {

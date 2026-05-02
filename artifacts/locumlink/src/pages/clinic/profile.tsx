@@ -64,7 +64,7 @@ export default function ClinicProfile() {
 
   const onSubmit = async (data: ProfileFormValues) => {
     try {
-      await updateClinic.mutateAsync({ data });
+      await updateClinic.mutateAsync({ id: clinic?.id ?? 0, data: data as any });
       toast({ title: "Clinic profile updated successfully" });
     } catch (error: any) {
       toast({ title: "Failed to update", description: error.error || "An error occurred", variant: "destructive" });

@@ -52,7 +52,7 @@ router.get("/storage/objects/*path", authenticate, async (req, res) => {
 
 /** PATCH /api/locums/:id/documents — save uploaded document URLs after GCS upload */
 router.patch("/locums/:id/documents", authenticate, async (req, res) => {
-  const id = parseInt(req.params.id);
+  const id = parseInt(req.params.id as string);
   if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
 
   const { idDocumentUrl, practicingCertUrl, registrationCertUrl } = req.body as {
@@ -83,7 +83,7 @@ router.patch("/locums/:id/documents", authenticate, async (req, res) => {
 
 /** PATCH /api/clinics/:id/documents — save clinic verification documents */
 router.patch("/clinics/:id/documents", authenticate, async (req, res) => {
-  const id = parseInt(req.params.id);
+  const id = parseInt(req.params.id as string);
   if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
 
   const { mohLicenceUrl, businessCertUrl, kmpdcLicenceUrl } = req.body as {

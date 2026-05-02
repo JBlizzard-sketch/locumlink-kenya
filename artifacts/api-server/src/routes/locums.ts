@@ -67,7 +67,7 @@ router.get("/locums/me", authenticate, async (req, res) => {
 });
 
 router.get("/locums/:id", async (req, res) => {
-  const id = parseInt(req.params.id);
+  const id = parseInt(req.params.id as string);
   if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
   try {
     const [locum] = await db.select().from(locumsTable).where(eq(locumsTable.id, id)).limit(1);
@@ -80,7 +80,7 @@ router.get("/locums/:id", async (req, res) => {
 });
 
 router.patch("/locums/:id", authenticate, async (req, res) => {
-  const id = parseInt(req.params.id);
+  const id = parseInt(req.params.id as string);
   if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
   const parse = UpdateLocumBody.safeParse(req.body);
   if (!parse.success) {
@@ -98,7 +98,7 @@ router.patch("/locums/:id", authenticate, async (req, res) => {
 });
 
 router.get("/locums/:id/availability", async (req, res) => {
-  const id = parseInt(req.params.id);
+  const id = parseInt(req.params.id as string);
   if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
   try {
     let query = db.select().from(availabilitySlotsTable).where(eq(availabilitySlotsTable.locumId, id));
@@ -111,7 +111,7 @@ router.get("/locums/:id/availability", async (req, res) => {
 });
 
 router.post("/locums/:id/availability", authenticate, async (req, res) => {
-  const id = parseInt(req.params.id);
+  const id = parseInt(req.params.id as string);
   if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
   const parse = SetLocumAvailabilityBody.safeParse(req.body);
   if (!parse.success) {

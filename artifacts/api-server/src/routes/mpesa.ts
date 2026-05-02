@@ -17,7 +17,7 @@ const CALLBACK_BASE =
  * Clinic initiates STK Push to pay into escrow for a confirmed booking
  */
 router.post("/payments/:bookingId/initiate-mpesa", authenticate, async (req, res) => {
-  const bookingId = parseInt(req.params.bookingId);
+  const bookingId = parseInt(req.params.bookingId as string);
   if (isNaN(bookingId)) { res.status(400).json({ error: "Invalid id" }); return; }
 
   if (!isConfigured()) {
@@ -130,7 +130,7 @@ router.post("/payments/mpesa-callback", async (req, res) => {
  * Platform admin triggers B2C payout to locum after completion
  */
 router.post("/payments/:bookingId/payout-locum", authenticate, async (req, res) => {
-  const bookingId = parseInt(req.params.bookingId);
+  const bookingId = parseInt(req.params.bookingId as string);
   if (isNaN(bookingId)) { res.status(400).json({ error: "Invalid id" }); return; }
 
   if (!isConfigured()) {
@@ -193,7 +193,7 @@ router.post("/payments/b2c-timeout", async (req, res) => {
 
 /** GET /api/payments/mpesa-status/:checkoutRequestId — poll payment status */
 router.get("/payments/mpesa-status/:checkoutRequestId", authenticate, async (req, res) => {
-  const { checkoutRequestId } = req.params;
+  const checkoutRequestId = req.params.checkoutRequestId as string;
   try {
     const [payment] = await db.select().from(paymentsTable)
       .where(eq(paymentsTable.mpesaCheckoutRequestId, checkoutRequestId)).limit(1);

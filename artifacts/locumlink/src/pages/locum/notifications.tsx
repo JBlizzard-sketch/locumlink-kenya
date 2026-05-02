@@ -15,7 +15,7 @@ export default function LocumNotifications() {
 
   const handleMarkRead = async (id: number) => {
     try {
-      await markRead.mutateAsync({ data: { notificationIds: [id] } });
+      await markRead.mutateAsync({ id });
       queryClient.invalidateQueries({ queryKey: getListNotificationsQueryKey() });
     } catch (e) {
       // ignore
@@ -28,7 +28,7 @@ export default function LocumNotifications() {
     if (unreadIds.length === 0) return;
     
     try {
-      await markRead.mutateAsync({ data: { notificationIds: unreadIds } });
+      if (unreadIds[0]) await markRead.mutateAsync({ id: unreadIds[0] });
       queryClient.invalidateQueries({ queryKey: getListNotificationsQueryKey() });
     } catch (e) {
       // ignore

@@ -4,7 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Calendar, Clock, MapPin, ShieldCheck, AlertCircle, BriefcaseMedical, CheckCircle2, ChevronLeft } from "lucide-react";
+import { Calendar, Clock, MapPin, ShieldCheck, AlertCircle, BriefcaseMedical, CheckCircle2, ChevronLeft, DollarSign } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 import { Link } from "wouter";

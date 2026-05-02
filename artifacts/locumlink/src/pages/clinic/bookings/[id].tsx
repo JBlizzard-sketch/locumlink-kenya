@@ -26,10 +26,10 @@ export default function ClinicBookingDetail() {
   const handleAction = async (action: 'sign' | 'complete') => {
     try {
       if (action === 'sign') {
-        await signMutation.mutateAsync({ bookingId });
+        await signMutation.mutateAsync({ id: bookingId });
         toast({ title: "Contract signed successfully" });
       } else if (action === 'complete') {
-        await completeMutation.mutateAsync({ bookingId });
+        await completeMutation.mutateAsync({ id: bookingId });
         toast({ title: "Shift marked as completed" });
       }
       queryClient.invalidateQueries({ queryKey: getGetBookingQueryKey(bookingId) });

@@ -15,7 +15,8 @@ async function enrichBooking(booking: any) {
   if (shift) {
     const [clinic] = await db.select().from(clinicsTable).where(eq(clinicsTable.id, shift.clinicId)).limit(1);
     const [specialty] = await db.select().from(specialtiesTable).where(eq(specialtiesTable.id, shift.specialtyId)).limit(1);
-    enrichedShift = { ...shift, clinic: clinic || null, specialty: specialty || null };
+    (enrichedShift as any).clinic = clinic || null;
+    (enrichedShift as any).specialty = specialty || null;
   }
   return { ...booking, shift: enrichedShift, locum: locum || null, payment: payment || null, dispute: dispute || null };
 }
@@ -40,7 +41,7 @@ router.get("/bookings", authenticate, async (req, res) => {
 });
 
 router.get("/bookings/:id", authenticate, async (req, res) => {
-  const id = parseInt(req.params.id);
+  const id = parseInt(req.params.id as string);
   if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
   try {
     const [booking] = await db.select().from(bookingsTable).where(eq(bookingsTable.id, id)).limit(1);
@@ -53,7 +54,7 @@ router.get("/bookings/:id", authenticate, async (req, res) => {
 });
 
 router.post("/bookings/:id/check-in", authenticate, async (req, res) => {
-  const id = parseInt(req.params.id);
+  const id = parseInt(req.params.id as string);
   if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
   try {
     const [booking] = await db.update(bookingsTable)
@@ -68,7 +69,7 @@ router.post("/bookings/:id/check-in", authenticate, async (req, res) => {
 });
 
 router.post("/bookings/:id/complete", authenticate, async (req, res) => {
-  const id = parseInt(req.params.id);
+  const id = parseInt(req.params.id as string);
   if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
   try {
     const [booking] = await db.update(bookingsTable)
@@ -97,7 +98,7 @@ router.post("/bookings/:id/complete", authenticate, async (req, res) => {
 });
 
 router.post("/bookings/:id/sign-contract", authenticate, async (req, res) => {
-  const id = parseInt(req.params.id);
+  const id = parseInt(req.params.id as string);
   if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
   const { userId, role } = (req as any).user;
   try {

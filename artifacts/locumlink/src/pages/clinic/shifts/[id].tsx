@@ -19,7 +19,7 @@ export default function ClinicShiftDetail() {
   });
   
   const { data: applications, isLoading: appsLoading } = useListShiftApplications(shiftId, {
-    query: { enabled: !!shiftId }
+    query: { queryKey: [`/api/shifts/${shiftId}/applications`], enabled: !!shiftId }
   });
 
   const shortlist = useShortlistApplication();
@@ -30,9 +30,9 @@ export default function ClinicShiftDetail() {
 
   const handleAction = async (appId: number, action: 'shortlist' | 'confirm' | 'reject') => {
     try {
-      if (action === 'shortlist') await shortlist.mutateAsync({ shiftId, id: appId });
-      if (action === 'confirm') await confirm.mutateAsync({ shiftId, id: appId });
-      if (action === 'reject') await reject.mutateAsync({ shiftId, id: appId });
+      if (action === 'shortlist') await shortlist.mutateAsync({ id: appId });
+      if (action === 'confirm') await confirm.mutateAsync({ id: appId });
+      if (action === 'reject') await reject.mutateAsync({ id: appId });
       
       toast({ title: `Application ${action}ed successfully` });
       queryClient.invalidateQueries({ queryKey: getGetShiftQueryKey(shiftId) });

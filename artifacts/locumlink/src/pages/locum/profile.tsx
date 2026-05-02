@@ -68,7 +68,7 @@ export default function LocumProfile() {
 
   const onSubmit = async (data: ProfileFormValues) => {
     try {
-      await updateLocum.mutateAsync({ data });
+      await updateLocum.mutateAsync({ id: profile?.id ?? 0, data: data as any });
       toast({ title: "Profile updated successfully" });
     } catch (error: any) {
       toast({ title: "Failed to update", description: error.error || "An error occurred", variant: "destructive" });

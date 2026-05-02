@@ -51,7 +51,7 @@ router.get("/payments/earnings-summary", authenticate, async (req, res) => {
 });
 
 router.get("/payments/:id", authenticate, async (req, res) => {
-  const id = parseInt(req.params.id);
+  const id = parseInt(req.params.id as string);
   if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
   try {
     const [payment] = await db.select().from(paymentsTable).where(eq(paymentsTable.id, id)).limit(1);

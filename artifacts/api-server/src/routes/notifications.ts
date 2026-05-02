@@ -61,7 +61,7 @@ router.patch("/notifications/preferences", authenticate, async (req, res) => {
 });
 
 router.post("/notifications/:id/read", authenticate, async (req, res) => {
-  const id = parseInt(req.params.id);
+  const id = parseInt(req.params.id as string);
   if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
   try {
     await db.update(notificationsTable).set({ status: "read", readAt: new Date() }).where(eq(notificationsTable.id, id));

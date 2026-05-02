@@ -45,7 +45,7 @@ export default function LocumContract() {
 
   async function handleSign() {
     try {
-      await signMutation.mutateAsync({ bookingId });
+      await signMutation.mutateAsync({ id: bookingId });
       await refetch();
       queryClient.invalidateQueries({ queryKey: ["contract", bookingId] });
       toast({ title: "Contract signed", description: "You have digitally signed this agreement." });

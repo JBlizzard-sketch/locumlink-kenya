@@ -64,7 +64,7 @@ router.get("/clinics/me", authenticate, async (req, res) => {
 });
 
 router.get("/clinics/:id", async (req, res) => {
-  const id = parseInt(req.params.id);
+  const id = parseInt(req.params.id as string);
   if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
   try {
     const [clinic] = await db.select().from(clinicsTable).where(eq(clinicsTable.id, id)).limit(1);
@@ -77,7 +77,7 @@ router.get("/clinics/:id", async (req, res) => {
 });
 
 router.patch("/clinics/:id", authenticate, async (req, res) => {
-  const id = parseInt(req.params.id);
+  const id = parseInt(req.params.id as string);
   if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
   const parse = UpdateClinicBody.safeParse(req.body);
   if (!parse.success) {

@@ -8,7 +8,7 @@ import { authenticate } from "../middlewares/auth";
 const router = Router();
 
 router.post("/bookings/:bookingId/rating", authenticate, async (req, res) => {
-  const bookingId = parseInt(req.params.bookingId);
+  const bookingId = parseInt(req.params.bookingId as string);
   if (isNaN(bookingId)) { res.status(400).json({ error: "Invalid id" }); return; }
   const parse = SubmitRatingBody.safeParse(req.body);
   if (!parse.success) {
@@ -31,7 +31,7 @@ router.post("/bookings/:bookingId/rating", authenticate, async (req, res) => {
 });
 
 router.get("/bookings/:bookingId/rating", async (req, res) => {
-  const bookingId = parseInt(req.params.bookingId);
+  const bookingId = parseInt(req.params.bookingId as string);
   if (isNaN(bookingId)) { res.status(400).json({ error: "Invalid id" }); return; }
   try {
     const data = await db.select().from(ratingsTable).where(eq(ratingsTable.bookingId, bookingId));
@@ -44,7 +44,7 @@ router.get("/bookings/:bookingId/rating", async (req, res) => {
 });
 
 router.get("/locums/:id/ratings", async (req, res) => {
-  const id = parseInt(req.params.id);
+  const id = parseInt(req.params.id as string);
   if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
   try {
     const bookings = await db.select().from(bookingsTable).where(eq(bookingsTable.locumId, id));
@@ -63,7 +63,7 @@ router.get("/locums/:id/ratings", async (req, res) => {
 });
 
 router.get("/clinics/:id/ratings", async (req, res) => {
-  const id = parseInt(req.params.id);
+  const id = parseInt(req.params.id as string);
   if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
   try {
     const data = await db.select().from(ratingsTable).where(eq(ratingsTable.raterType, "locum")).limit(20);

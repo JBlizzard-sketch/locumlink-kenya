@@ -46,7 +46,7 @@ router.get("/disputes", authenticate, async (req, res) => {
 });
 
 router.get("/disputes/:id", authenticate, async (req, res) => {
-  const id = parseInt(req.params.id);
+  const id = parseInt(req.params.id as string);
   if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
   try {
     const [dispute] = await db.select().from(disputesTable).where(eq(disputesTable.id, id)).limit(1);

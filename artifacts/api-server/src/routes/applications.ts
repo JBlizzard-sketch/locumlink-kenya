@@ -14,13 +14,14 @@ async function enrichApplication(app: any) {
   if (shift) {
     const [clinic] = await db.select().from(clinicsTable).where(eq(clinicsTable.id, shift.clinicId)).limit(1);
     const [specialty] = await db.select().from(specialtiesTable).where(eq(specialtiesTable.id, shift.specialtyId)).limit(1);
-    shiftWithClinic = { ...shift, clinic: clinic || null, specialty: specialty || null };
+    (shiftWithClinic as any).clinic = clinic || null;
+    (shiftWithClinic as any).specialty = specialty || null;
   }
   return { ...app, locum: locum || null, shift: shiftWithClinic };
 }
 
 router.get("/shifts/:shiftId/applications", authenticate, async (req, res) => {
-  const shiftId = parseInt(req.params.shiftId);
+  const shiftId = parseInt(req.params.shiftId as string);
   if (isNaN(shiftId)) { res.status(400).json({ error: "Invalid id" }); return; }
   try {
     const raw = await db.select().from(shiftApplicationsTable).where(eq(shiftApplicationsTable.shiftId, shiftId));
@@ -33,7 +34,7 @@ router.get("/shifts/:shiftId/applications", authenticate, async (req, res) => {
 });
 
 router.post("/shifts/:shiftId/applications", authenticate, async (req, res) => {
-  const shiftId = parseInt(req.params.shiftId);
+  const shiftId = parseInt(req.params.shiftId as string);
   if (isNaN(shiftId)) { res.status(400).json({ error: "Invalid id" }); return; }
   const parse = ApplyToShiftBody.safeParse(req.body);
   if (!parse.success) {
@@ -67,7 +68,7 @@ router.post("/shifts/:shiftId/applications", authenticate, async (req, res) => {
 });
 
 router.post("/applications/:id/shortlist", authenticate, async (req, res) => {
-  const id = parseInt(req.params.id);
+  const id = parseInt(req.params.id as string);
   if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
   try {
     const [app] = await db.update(shiftApplicationsTable)
@@ -82,7 +83,7 @@ router.post("/applications/:id/shortlist", authenticate, async (req, res) => {
 });
 
 router.post("/applications/:id/confirm", authenticate, async (req, res) => {
-  const id = parseInt(req.params.id);
+  const id = parseInt(req.params.id as string);
   if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
   try {
     const [app] = await db.update(shiftApplicationsTable)
@@ -109,7 +110,7 @@ router.post("/applications/:id/confirm", authenticate, async (req, res) => {
 });
 
 router.post("/applications/:id/reject", authenticate, async (req, res) => {
-  const id = parseInt(req.params.id);
+  const id = parseInt(req.params.id as string);
   if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
   try {
     const [app] = await db.update(shiftApplicationsTable)

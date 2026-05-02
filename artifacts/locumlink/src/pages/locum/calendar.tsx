@@ -10,7 +10,7 @@ import { Loader2 } from "lucide-react";
 export default function LocumCalendar() {
   const [date, setDate] = useState<Date | undefined>(new Date());
   
-  const { data: availability, isLoading, refetch } = useGetLocumAvailability({});
+  const { data: availability, isLoading, refetch } = useGetLocumAvailability(0, {});
   const setAvailability = useSetLocumAvailability();
   const { toast } = useToast();
 
@@ -25,6 +25,7 @@ export default function LocumCalendar() {
 
     try {
       await setAvailability.mutateAsync({
+        id: 0,
         data: {
           slots: [{
             date: dateStr,

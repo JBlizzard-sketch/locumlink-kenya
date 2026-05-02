@@ -14,7 +14,7 @@ const router = Router();
 
 /** GET /api/shifts/:id/matched-locums — ranked list of best-fit locums for a shift */
 router.get("/shifts/:id/matched-locums", authenticate, async (req, res) => {
-  const id = parseInt(req.params.id);
+  const id = parseInt(req.params.id as string);
   if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
   try {
     const matches = await findMatchedLocums(id, 20);

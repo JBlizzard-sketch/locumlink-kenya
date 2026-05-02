@@ -20,7 +20,7 @@ const router = Router();
 
 /** GET /api/bookings/:id/contract — fetch or generate contract HTML */
 router.get("/bookings/:id/contract", authenticate, async (req, res) => {
-  const id = parseInt(req.params.id);
+  const id = parseInt(req.params.id as string);
   if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
 
   try {
