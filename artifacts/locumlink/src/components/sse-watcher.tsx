@@ -19,6 +19,10 @@ const EVENT_MESSAGES: Record<SseEventType, (payload: Record<string, unknown>) =>
     title: "Application Not Selected",
     description: `Your application for "${p.shiftTitle ?? "a shift"}" was not selected.`,
   }),
+  application_withdrawn: (p) => ({
+    title: "Applicant Withdrew",
+    description: `${p.locumName ?? "A locum"} withdrew their application for "${p.shiftTitle ?? "your shift"}".`,
+  }),
   booking_updated: () => ({
     title: "Booking Updated",
     description: "Your booking details have changed.",
@@ -37,7 +41,7 @@ const EVENT_MESSAGES: Record<SseEventType, (payload: Record<string, unknown>) =>
   }),
   credential_verified: () => ({
     title: "Credentials Verified ✓",
-    description: "Your credentials have been approved. You can now apply to shifts.",
+    description: "Your credentials have been approved.",
   }),
   credential_rejected: () => ({
     title: "Credentials Require Attention",
@@ -47,19 +51,25 @@ const EVENT_MESSAGES: Record<SseEventType, (payload: Record<string, unknown>) =>
     title: "Shift Reminder",
     description: `Your shift "${p.shiftTitle ?? ""}" starts soon. Don't forget to check in.`,
   }),
+  shift_cancelled: (p) => ({
+    title: "Shift Cancelled",
+    description: `The shift "${p.shiftTitle ?? ""}" has been cancelled by the clinic.`,
+  }),
   ping: () => ({ title: "", description: "" }),
 };
 
 const QUERY_KEYS_TO_INVALIDATE: Partial<Record<SseEventType, string[][]>> = {
-  application_received:   [["listMyShiftsApplications"], ["listApplications"]],
-  application_shortlisted:[["listMyApplications"]],
-  application_confirmed:  [["listMyApplications"], ["listMyBookings"], ["listBookings"]],
-  application_rejected:   [["listMyApplications"]],
-  booking_updated:        [["listMyBookings"], ["listBookings"]],
-  payment_released:       [["listMyPayments"], ["getLocumAnalytics"]],
-  dispute_resolved:       [["listMyDisputes"]],
-  credential_verified:    [["getMyLocum"], ["getMyClinic"]],
-  credential_rejected:    [["getMyLocum"], ["getMyClinic"]],
+  application_received:    [["listMyShiftsApplications"], ["listApplications"], ["listNotifications"]],
+  application_shortlisted: [["listMyApplications"], ["listNotifications"]],
+  application_confirmed:   [["listMyApplications"], ["listMyBookings"], ["listBookings"], ["listNotifications"]],
+  application_rejected:    [["listMyApplications"], ["listNotifications"]],
+  application_withdrawn:   [["listMyShiftsApplications"], ["listApplications"], ["listNotifications"]],
+  booking_updated:         [["listMyBookings"], ["listBookings"]],
+  payment_released:        [["listMyPayments"], ["getLocumAnalytics"], ["listNotifications"]],
+  dispute_resolved:        [["listMyDisputes"], ["listNotifications"]],
+  credential_verified:     [["getMyLocum"], ["getMyClinic"], ["listNotifications"]],
+  credential_rejected:     [["getMyLocum"], ["getMyClinic"], ["listNotifications"]],
+  shift_cancelled:         [["listMyApplications"], ["listMyBookings"], ["listNotifications"]],
 };
 
 export function SseWatcher() {

@@ -36,6 +36,7 @@ import ClinicBookings from "@/pages/clinic/bookings";
 import ClinicBookingDetail from "@/pages/clinic/bookings/[id]";
 import ClinicAnalytics from "@/pages/clinic/analytics";
 import ClinicProfile from "@/pages/clinic/profile";
+import ClinicNotifications from "@/pages/clinic/notifications";
 import ClinicLocumsDirectory from "@/pages/clinic/locums";
 import ClinicTemplates from "@/pages/clinic/templates";
 
@@ -79,6 +80,7 @@ export default function Router() {
       <Route path="/clinic/bookings">{() => <ProtectedRoute allowedRoles={["clinic_admin", "clinic_hr"]}><Layout><ClinicBookings /></Layout></ProtectedRoute>}</Route>
       <Route path="/clinic/bookings/:id">{() => <ProtectedRoute allowedRoles={["clinic_admin", "clinic_hr"]}><Layout><ClinicBookingDetail /></Layout></ProtectedRoute>}</Route>
       <Route path="/clinic/analytics">{() => <ProtectedRoute allowedRoles={["clinic_admin", "clinic_hr"]}><Layout><ClinicAnalytics /></Layout></ProtectedRoute>}</Route>
+      <Route path="/clinic/notifications">{() => <ProtectedRoute allowedRoles={["clinic_admin", "clinic_hr"]}><Layout><ClinicNotifications /></Layout></ProtectedRoute>}</Route>
       <Route path="/clinic/profile">{() => <ProtectedRoute allowedRoles={["clinic_admin", "clinic_hr"]}><Layout><ClinicProfile /></Layout></ProtectedRoute>}</Route>
       <Route path="/clinic/locums">{() => <ProtectedRoute allowedRoles={["clinic_admin", "clinic_hr"]}><Layout><ClinicLocumsDirectory /></Layout></ProtectedRoute>}</Route>
       <Route path="/clinic/shifts/:id/matched">{() => <ProtectedRoute allowedRoles={["clinic_admin", "clinic_hr"]}><Layout><ClinicMatchedLocums /></Layout></ProtectedRoute>}</Route>

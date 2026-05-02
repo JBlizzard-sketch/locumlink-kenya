@@ -24,8 +24,9 @@ export function Layout({ children }: { children: React.ReactNode }) {
   const [location] = useLocation();
 
   const isLocum = user?.role === "locum";
+  const isClinic = user?.role === "clinic_admin" || user?.role === "clinic_hr";
   const { data: notifData } = useListNotifications(undefined, {
-    query: { enabled: isLocum, refetchInterval: 30_000, queryKey: getListNotificationsQueryKey() },
+    query: { enabled: isLocum || isClinic, refetchInterval: 30_000, queryKey: getListNotificationsQueryKey() },
   });
   const unreadCount = notifData?.data?.filter(n => n.status !== "read").length ?? 0;
 
@@ -49,6 +50,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
     { name: "Locum Directory", href: "/clinic/locums", icon: Users },
     { name: "Templates", href: "/clinic/templates", icon: LayoutTemplate },
     { name: "Analytics", href: "/clinic/analytics", icon: FileText },
+    { name: "Notifications", href: "/clinic/notifications", icon: Bell, badge: unreadCount > 0 ? unreadCount : undefined },
     { name: "Clinic Profile", href: "/clinic/profile", icon: Settings },
   ];
 
@@ -129,8 +131,8 @@ export function Layout({ children }: { children: React.ReactNode }) {
             <span>LocumLink</span>
           </Link>
           <div className="flex items-center gap-2">
-            {isLocum && unreadCount > 0 && (
-              <Link href="/locum/notifications">
+            {(isLocum || isClinic) && unreadCount > 0 && (
+              <Link href={isLocum ? "/locum/notifications" : "/clinic/notifications"}>
                 <Button variant="ghost" size="icon" className="relative">
                   <Bell className="h-5 w-5" />
                   <span className="absolute top-1 right-1 h-2 w-2 rounded-full bg-primary" />

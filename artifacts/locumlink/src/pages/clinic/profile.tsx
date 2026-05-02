@@ -3,14 +3,17 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { useToast } from "@/hooks/use-toast";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useMemo } from "react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { ShieldCheck, AlertCircle, CheckCircle2, Circle, Building2, FileText, Phone, MapPin } from "lucide-react";
 
 const profileSchema = z.object({
   name: z.string().min(2, "Clinic name required"),
@@ -71,10 +74,35 @@ export default function ClinicProfile() {
     }
   };
 
+  const completionItems = useMemo(() => {
+    if (!clinic) return [];
+    return [
+      { label: "Clinic name", done: !!clinic.name?.trim(), icon: Building2 },
+      { label: "Facility type", done: !!clinic.facilityType, icon: Building2 },
+      { label: "Physical address", done: !!clinic.address?.trim(), icon: MapPin },
+      { label: "Sub-county", done: !!clinic.subCounty?.trim(), icon: MapPin },
+      { label: "About the clinic (bio)", done: !!clinic.bio?.trim(), icon: FileText },
+      { label: "Contact person name", done: !!clinic.contactName?.trim(), icon: Phone },
+      { label: "Contact email", done: !!clinic.contactEmail?.trim(), icon: Phone },
+      { label: "Contact phone", done: !!clinic.contactPhone?.trim(), icon: Phone },
+    ];
+  }, [clinic]);
+
+  const completionScore = useMemo(() => {
+    const weights = [15, 10, 15, 10, 20, 10, 10, 10];
+    return completionItems.reduce((acc, item, i) => acc + (item.done ? weights[i] : 0), 0);
+  }, [completionItems]);
+
+  const strengthLabel = completionScore >= 90 ? { text: "Complete", color: "text-green-600", bg: "bg-green-100" }
+    : completionScore >= 65 ? { text: "Strong", color: "text-blue-600", bg: "bg-blue-100" }
+    : completionScore >= 35 ? { text: "Getting There", color: "text-amber-600", bg: "bg-amber-100" }
+    : { text: "Starter", color: "text-muted-foreground", bg: "bg-muted" };
+
   if (isLoading) {
     return (
       <div className="max-w-3xl mx-auto space-y-6">
         <Skeleton className="h-10 w-48 mb-6" />
+        <Skeleton className="h-48 w-full rounded-xl" />
         <Skeleton className="h-[600px] w-full rounded-xl" />
       </div>
     );
@@ -84,8 +112,78 @@ export default function ClinicProfile() {
     <div className="space-y-6 max-w-3xl mx-auto">
       <div>
         <h1 className="text-3xl font-bold font-serif tracking-tight">Clinic Profile</h1>
-        <p className="text-muted-foreground mt-1">Manage your facility details visible to locums.</p>
+        <p className="text-muted-foreground mt-1">Manage your facility details visible to locums applying to your shifts.</p>
       </div>
+
+      {/* Profile Completion Widget */}
+      <Card className="border-l-4 border-l-primary overflow-hidden">
+        <CardHeader className="pb-3">
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-base">Profile Completeness</CardTitle>
+            <Badge className={`${strengthLabel.bg} ${strengthLabel.color} border-0 font-semibold`}>
+              {strengthLabel.text}
+            </Badge>
+          </div>
+          <div className="space-y-1.5">
+            <Progress value={completionScore} className="h-2" />
+            <p className="text-xs text-muted-foreground">{completionScore}% complete — a complete profile attracts more locum applications</p>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="grid sm:grid-cols-2 gap-x-6 gap-y-1.5">
+            {completionItems.map((item) => (
+              <div key={item.label} className="flex items-center gap-2 text-sm">
+                {item.done ? (
+                  <CheckCircle2 className="h-4 w-4 text-green-500 shrink-0" />
+                ) : (
+                  <Circle className="h-4 w-4 text-muted-foreground/40 shrink-0" />
+                )}
+                <span className={item.done ? "text-foreground" : "text-muted-foreground"}>{item.label}</span>
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Verification Status */}
+      {clinic && (
+        <Card className={`border ${
+          clinic.verificationStatus === "verified"
+            ? "border-green-200 bg-green-50/20"
+            : clinic.verificationStatus === "rejected"
+              ? "border-red-200 bg-red-50/20"
+              : "border-amber-200 bg-amber-50/20"
+        }`}>
+          <CardContent className="p-4 flex items-center gap-3">
+            {clinic.verificationStatus === "verified" ? (
+              <ShieldCheck className="h-6 w-6 text-green-600 shrink-0" />
+            ) : (
+              <AlertCircle className="h-6 w-6 text-amber-600 shrink-0" />
+            )}
+            <div className="flex-1">
+              <p className="font-semibold text-sm">
+                {clinic.verificationStatus === "verified"
+                  ? "Clinic verified by LocumLink"
+                  : clinic.verificationStatus === "rejected"
+                    ? "Verification requires attention"
+                    : "Verification pending review"}
+              </p>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                {clinic.verificationStatus === "verified"
+                  ? "Your clinic appears with a verified badge on all shift listings. Locums trust verified clinics more."
+                  : clinic.verificationStatus === "rejected"
+                    ? ((clinic as any).verificationNotes ?? "Please contact support to re-submit your documents.")
+                    : "The LocumLink team is reviewing your registration documents. This usually takes 1–2 business days."}
+              </p>
+            </div>
+            {clinic.verificationStatus === "verified" && (
+              <Badge className="bg-green-100 text-green-700 border-green-200 gap-1 shrink-0">
+                <ShieldCheck className="h-3 w-3" /> Verified
+              </Badge>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       <Card>
         <CardHeader>
