@@ -22,7 +22,12 @@ import {
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import { useListNotifications, useListMessageConversations, getListNotificationsQueryKey, getListMessageConversationsQueryKey } from "@workspace/api-client-react";
+import {
+  useListNotifications,
+  useListMessageConversations,
+  getListNotificationsQueryKey,
+  getListMessageConversationsQueryKey,
+} from "@workspace/api-client-react";
 
 type NavItem = {
   name: string;
@@ -38,48 +43,57 @@ export function Layout({ children }: { children: React.ReactNode }) {
 
   const isLocum = user?.role === "locum";
   const isClinic = user?.role === "clinic_admin" || user?.role === "clinic_hr";
+
   const { data: notifData } = useListNotifications(undefined, {
-    query: { enabled: isLocum || isClinic, refetchInterval: 30_000, queryKey: getListNotificationsQueryKey() },
+    query: {
+      enabled: isLocum || isClinic,
+      refetchInterval: 30_000,
+      queryKey: getListNotificationsQueryKey(),
+    },
   });
-  const unreadCount = notifData?.data?.filter(n => n.status !== "read").length ?? 0;
+  const unreadCount = notifData?.data?.filter((n) => n.status !== "read").length ?? 0;
 
   const { data: convData } = useListMessageConversations({
-    query: { enabled: isLocum || isClinic, refetchInterval: 20_000, queryKey: getListMessageConversationsQueryKey() },
+    query: {
+      enabled: isLocum || isClinic,
+      refetchInterval: 20_000,
+      queryKey: getListMessageConversationsQueryKey(),
+    },
   });
   const unreadMsgCount = (convData?.data ?? []).reduce((sum, c) => sum + (c.unreadCount ?? 0), 0);
 
   const locumNav: NavItem[] = [
-    { name: "Dashboard", href: "/locum/dashboard", icon: LayoutDashboard },
-    { name: "Find Shifts", href: "/locum/shifts", icon: BriefcaseMedical },
-    { name: "My Applications", href: "/locum/applications", icon: ActivitySquare },
-    { name: "My Bookings", href: "/locum/bookings", icon: CalendarDays },
-    { name: "Messages", href: "/locum/messages", icon: MessageSquare, badge: unreadMsgCount > 0 ? unreadMsgCount : undefined },
-    { name: "Earnings", href: "/locum/earnings", icon: Wallet },
-    { name: "Documents", href: "/locum/documents", icon: FileText },
-    { name: "Notifications", href: "/locum/notifications", icon: Bell, badge: unreadCount > 0 ? unreadCount : undefined },
-    { name: "Ratings", href: "/locum/ratings", icon: Star },
-    { name: "Profile", href: "/locum/profile", icon: User },
+    { name: "Dashboard",        href: "/locum/dashboard",      icon: LayoutDashboard },
+    { name: "Find Shifts",      href: "/locum/shifts",         icon: BriefcaseMedical },
+    { name: "My Applications",  href: "/locum/applications",   icon: ActivitySquare },
+    { name: "My Bookings",      href: "/locum/bookings",       icon: CalendarDays },
+    { name: "Messages",         href: "/locum/messages",       icon: MessageSquare, badge: unreadMsgCount > 0 ? unreadMsgCount : undefined },
+    { name: "Earnings",         href: "/locum/earnings",       icon: Wallet },
+    { name: "Documents",        href: "/locum/documents",      icon: FileText },
+    { name: "Notifications",    href: "/locum/notifications",  icon: Bell, badge: unreadCount > 0 ? unreadCount : undefined },
+    { name: "Ratings",          href: "/locum/ratings",        icon: Star },
+    { name: "Profile",          href: "/locum/profile",        icon: User },
   ];
 
   const clinicNav: NavItem[] = [
-    { name: "Dashboard", href: "/clinic/dashboard", icon: LayoutDashboard },
-    { name: "Manage Shifts", href: "/clinic/shifts", icon: BriefcaseMedical },
-    { name: "Applications", href: "/clinic/applications", icon: ActivitySquare },
-    { name: "Active Bookings", href: "/clinic/bookings", icon: CalendarDays },
-    { name: "Messages", href: "/clinic/messages", icon: MessageSquare, badge: unreadMsgCount > 0 ? unreadMsgCount : undefined },
-    { name: "Locum Directory", href: "/clinic/locums", icon: Users },
-    { name: "Templates", href: "/clinic/templates", icon: LayoutTemplate },
-    { name: "Analytics", href: "/clinic/analytics", icon: FileText },
-    { name: "Notifications", href: "/clinic/notifications", icon: Bell, badge: unreadCount > 0 ? unreadCount : undefined },
-    { name: "Clinic Profile", href: "/clinic/profile", icon: Settings },
+    { name: "Dashboard",        href: "/clinic/dashboard",     icon: LayoutDashboard },
+    { name: "Manage Shifts",    href: "/clinic/shifts",        icon: BriefcaseMedical },
+    { name: "Applications",     href: "/clinic/applications",  icon: ActivitySquare },
+    { name: "Active Bookings",  href: "/clinic/bookings",      icon: CalendarDays },
+    { name: "Messages",         href: "/clinic/messages",      icon: MessageSquare, badge: unreadMsgCount > 0 ? unreadMsgCount : undefined },
+    { name: "Locum Directory",  href: "/clinic/locums",        icon: Users },
+    { name: "Templates",        href: "/clinic/templates",     icon: LayoutTemplate },
+    { name: "Analytics",        href: "/clinic/analytics",     icon: FileText },
+    { name: "Notifications",    href: "/clinic/notifications", icon: Bell, badge: unreadCount > 0 ? unreadCount : undefined },
+    { name: "Clinic Profile",   href: "/clinic/profile",       icon: Settings },
   ];
 
   const adminNav: NavItem[] = [
-    { name: "Dashboard", href: "/admin/dashboard", icon: LayoutDashboard },
-    { name: "Verifications", href: "/admin/verification", icon: Users },
-    { name: "Disputes", href: "/admin/disputes", icon: ActivitySquare },
-    { name: "Payments", href: "/admin/payments", icon: Wallet },
-    { name: "Users", href: "/admin/users", icon: User },
+    { name: "Dashboard",      href: "/admin/dashboard",     icon: LayoutDashboard },
+    { name: "Verifications",  href: "/admin/verification",  icon: Users },
+    { name: "Disputes",       href: "/admin/disputes",      icon: ActivitySquare },
+    { name: "Payments",       href: "/admin/payments",      icon: Wallet },
+    { name: "Users",          href: "/admin/users",         icon: User },
   ];
 
   const navItems =
@@ -90,6 +104,13 @@ export function Layout({ children }: { children: React.ReactNode }) {
       : user?.role === "platform_admin"
       ? adminNav
       : [];
+
+  const currentPageName =
+    navItems.find((item) => location === item.href || location.startsWith(item.href + "/"))?.name
+    ?? "Account Settings";
+
+  const notifHref = isLocum ? "/locum/notifications" : "/clinic/notifications";
+  const msgHref   = isLocum ? "/locum/messages"      : "/clinic/messages";
 
   function NavLinks({ onNavigate }: { onNavigate?: () => void }) {
     return (
@@ -129,7 +150,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex h-screen bg-muted/30">
       {/* Desktop Sidebar */}
-      <aside className="w-64 border-r bg-card flex flex-col h-full hidden md:flex">
+      <aside className="w-64 border-r bg-card flex flex-col h-full hidden md:flex shrink-0">
         <div className="p-6 border-b">
           <Link href="/" className="flex items-center gap-2 font-serif text-xl font-bold text-primary">
             <ActivitySquare className="h-6 w-6" />
@@ -155,7 +176,13 @@ export function Layout({ children }: { children: React.ReactNode }) {
           </div>
           <div className="space-y-1">
             <Link href="/account/settings">
-              <div className={`flex items-center gap-2 px-3 py-2 rounded-md text-sm text-muted-foreground hover:text-foreground hover:bg-secondary cursor-pointer transition-colors ${location === "/account/settings" ? "bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground" : ""}`}>
+              <div
+                className={`flex items-center gap-2 px-3 py-2 rounded-md text-sm text-muted-foreground hover:text-foreground hover:bg-secondary cursor-pointer transition-colors ${
+                  location === "/account/settings"
+                    ? "bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground"
+                    : ""
+                }`}
+              >
                 <Settings className="h-4 w-4" />
                 <span>Account Settings</span>
               </div>
@@ -169,7 +196,39 @@ export function Layout({ children }: { children: React.ReactNode }) {
       </aside>
 
       {/* Main Content */}
-      <main className="flex-1 flex flex-col overflow-hidden">
+      <main className="flex-1 flex flex-col overflow-hidden min-w-0">
+
+        {/* Desktop Top Bar */}
+        <header className="h-14 border-b bg-card hidden md:flex items-center justify-between px-6 shrink-0">
+          <h2 className="text-sm font-semibold text-foreground">{currentPageName}</h2>
+          {(isLocum || isClinic) && (
+            <div className="flex items-center gap-1">
+              {/* Messages */}
+              <Link href={msgHref}>
+                <Button variant="ghost" size="icon" className="relative h-9 w-9" aria-label="Messages">
+                  <MessageSquare className="h-4.5 w-4.5" />
+                  {unreadMsgCount > 0 && (
+                    <span className="absolute top-1 right-1 h-4 min-w-4 rounded-full bg-primary text-[10px] font-bold text-primary-foreground flex items-center justify-center px-0.5 leading-none">
+                      {unreadMsgCount > 99 ? "99+" : unreadMsgCount}
+                    </span>
+                  )}
+                </Button>
+              </Link>
+              {/* Notifications */}
+              <Link href={notifHref}>
+                <Button variant="ghost" size="icon" className="relative h-9 w-9" aria-label="Notifications">
+                  <Bell className="h-4.5 w-4.5" />
+                  {unreadCount > 0 && (
+                    <span className="absolute top-1 right-1 h-4 min-w-4 rounded-full bg-primary text-[10px] font-bold text-primary-foreground flex items-center justify-center px-0.5 leading-none">
+                      {unreadCount > 99 ? "99+" : unreadCount}
+                    </span>
+                  )}
+                </Button>
+              </Link>
+            </div>
+          )}
+        </header>
+
         {/* Mobile Top Header */}
         <header className="h-16 border-b bg-card flex items-center justify-between px-4 shrink-0 md:hidden">
           <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
@@ -216,7 +275,11 @@ export function Layout({ children }: { children: React.ReactNode }) {
                   </div>
                 </div>
                 <Link href="/account/settings" onClick={() => setMobileOpen(false)}>
-                  <div className={`flex items-center gap-2 px-3 py-2 rounded-md text-sm text-muted-foreground hover:text-foreground hover:bg-secondary cursor-pointer transition-colors ${location === "/account/settings" ? "bg-primary text-primary-foreground" : ""}`}>
+                  <div
+                    className={`flex items-center gap-2 px-3 py-2 rounded-md text-sm text-muted-foreground hover:text-foreground hover:bg-secondary cursor-pointer transition-colors ${
+                      location === "/account/settings" ? "bg-primary text-primary-foreground" : ""
+                    }`}
+                  >
                     <Settings className="h-4 w-4" />
                     <span>Account Settings</span>
                   </div>
@@ -234,22 +297,35 @@ export function Layout({ children }: { children: React.ReactNode }) {
           </Sheet>
 
           {/* Centre logo */}
-          <Link href="/" className="flex items-center gap-2 font-serif text-lg font-bold text-primary absolute left-1/2 -translate-x-1/2">
+          <Link
+            href="/"
+            className="flex items-center gap-2 font-serif text-lg font-bold text-primary absolute left-1/2 -translate-x-1/2"
+          >
             <ActivitySquare className="h-5 w-5" />
             <span>LocumLink</span>
           </Link>
 
-          {/* Right: notification bell */}
+          {/* Right: bell + messages */}
           <div className="flex items-center gap-1">
             {(isLocum || isClinic) && (
-              <Link href={isLocum ? "/locum/notifications" : "/clinic/notifications"}>
-                <Button variant="ghost" size="icon" className="relative" aria-label="Notifications">
-                  <Bell className="h-5 w-5" />
-                  {unreadCount > 0 && (
-                    <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-primary" />
-                  )}
-                </Button>
-              </Link>
+              <>
+                <Link href={msgHref}>
+                  <Button variant="ghost" size="icon" className="relative" aria-label="Messages">
+                    <MessageSquare className="h-5 w-5" />
+                    {unreadMsgCount > 0 && (
+                      <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-primary" />
+                    )}
+                  </Button>
+                </Link>
+                <Link href={notifHref}>
+                  <Button variant="ghost" size="icon" className="relative" aria-label="Notifications">
+                    <Bell className="h-5 w-5" />
+                    {unreadCount > 0 && (
+                      <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-primary" />
+                    )}
+                  </Button>
+                </Link>
+              </>
             )}
           </div>
         </header>

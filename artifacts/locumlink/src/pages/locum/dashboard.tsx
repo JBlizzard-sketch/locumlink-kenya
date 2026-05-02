@@ -1,20 +1,69 @@
-import { useGetLocumAnalytics, useListUpcomingShifts, useListMatchedShifts } from "@workspace/api-client-react";
+import {
+  useGetLocumAnalytics,
+  useListUpcomingShifts,
+  useListMatchedShifts,
+  useGetMyLocum,
+} from "@workspace/api-client-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ArrowRight, Calendar, Clock, DollarSign, Star, AlertCircle } from "lucide-react";
-import { Link } from "wouter";
+import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
+import { ArrowRight, Calendar, Clock, DollarSign, Star, AlertCircle, User, FileText, Zap, CheckCircle2, ChevronRight } from "lucide-react";
+import { Link } from "wouter";
 import { format, parseISO } from "date-fns";
+import { useMemo } from "react";
+
+const WEIGHTS = [10, 15, 15, 10, 5, 10, 5, 10, 10, 5, 5];
+
+function useProfileCompleteness() {
+  const { data: profile, isLoading } = useGetMyLocum();
+
+  const items = useMemo(() => {
+    if (!profile) return [];
+    return [
+      { label: "First & last name",          done: !!(profile.firstName && profile.lastName),                            href: "/locum/profile",    icon: User     },
+      { label: "Professional bio",            done: !!profile.bio?.trim(),                                               href: "/locum/profile",    icon: FileText },
+      { label: "Primary specialty",           done: !!profile.primarySpecialtyId,                                        href: "/locum/profile",    icon: Star     },
+      { label: "Years of experience",         done: (profile.yearsExperience ?? 0) > 0,                                  href: "/locum/profile",    icon: Zap      },
+      { label: "Preferred rate",              done: !!(profile.preferredRatePerShift && profile.preferredRatePerShift > 0), href: "/locum/profile", icon: Zap      },
+      { label: "M-Pesa number",              done: !!(profile as any).mpesaNumber?.trim(),                               href: "/locum/profile",    icon: Zap      },
+      { label: "Sub-county / location",       done: !!profile.subCounty?.trim(),                                         href: "/locum/profile",    icon: User     },
+      { label: "Profile photo",               done: !!(profile as any).profilePhotoUrl,                                  href: "/locum/profile",    icon: User     },
+      { label: "National ID uploaded",        done: !!(profile as any).idDocumentUrl,                                    href: "/locum/documents",  icon: FileText },
+      { label: "Practicing certificate",      done: !!(profile as any).practicingCertUrl,                                href: "/locum/documents",  icon: FileText },
+      { label: "Registration certificate",    done: !!(profile as any).registrationCertUrl,                              href: "/locum/documents",  icon: FileText },
+    ];
+  }, [profile]);
+
+  const score = useMemo(
+    () => items.reduce((acc, item, i) => acc + (item.done ? WEIGHTS[i] : 0), 0),
+    [items],
+  );
+
+  const missing = items.filter((i) => !i.done);
+
+  return { score, missing, isLoading, hasProfile: !!profile };
+}
+
+function strengthLabel(score: number) {
+  if (score >= 90) return { text: "Complete",      color: "text-green-700", bg: "bg-green-50 border-green-200",  bar: "bg-green-500"  };
+  if (score >= 65) return { text: "Strong",         color: "text-blue-700",  bg: "bg-blue-50 border-blue-200",   bar: "bg-blue-500"   };
+  if (score >= 35) return { text: "Getting there",  color: "text-amber-700", bg: "bg-amber-50 border-amber-200", bar: "bg-amber-500"  };
+  return               { text: "Just started",   color: "text-rose-700",  bg: "bg-rose-50 border-rose-200",   bar: "bg-rose-500"   };
+}
 
 export default function LocumDashboard() {
   const { data: analytics, isLoading: analyticsLoading } = useGetLocumAnalytics();
   const { data: upcomingShifts, isLoading: upcomingLoading } = useListUpcomingShifts();
   const { data: matchedShifts, isLoading: matchedLoading } = useListMatchedShifts();
+  const { score, missing, isLoading: profileLoading } = useProfileCompleteness();
 
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-KE', { style: 'currency', currency: 'KES', maximumFractionDigits: 0 }).format(amount);
-  };
+  const strength = strengthLabel(score);
+  const showCompletenessCard = !profileLoading && score < 90;
+
+  const formatCurrency = (amount: number) =>
+    new Intl.NumberFormat("en-KE", { style: "currency", currency: "KES", maximumFractionDigits: 0 }).format(amount);
 
   return (
     <div className="space-y-8 max-w-6xl mx-auto">
@@ -22,6 +71,75 @@ export default function LocumDashboard() {
         <h1 className="text-3xl font-bold font-serif tracking-tight">Dashboard</h1>
         <p className="text-muted-foreground mt-1">Overview of your shifts, earnings, and performance.</p>
       </div>
+
+      {/* Profile completeness banner — only shown when profile is incomplete */}
+      {profileLoading ? (
+        <Skeleton className="h-[88px] w-full rounded-xl" />
+      ) : showCompletenessCard ? (
+        <Card className={`border ${strength.bg}`}>
+          <CardContent className="p-5">
+            <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+              {/* Score ring + label */}
+              <div className="flex items-center gap-4 flex-1">
+                <div className="relative h-14 w-14 shrink-0">
+                  <svg className="h-14 w-14 -rotate-90" viewBox="0 0 56 56">
+                    <circle cx="28" cy="28" r="23" fill="none" stroke="currentColor" strokeWidth="5" className="text-muted/30" />
+                    <circle
+                      cx="28" cy="28" r="23" fill="none" strokeWidth="5"
+                      strokeDasharray={`${2 * Math.PI * 23}`}
+                      strokeDashoffset={`${2 * Math.PI * 23 * (1 - score / 100)}`}
+                      strokeLinecap="round"
+                      className={strength.bar.replace("bg-", "stroke-")}
+                    />
+                  </svg>
+                  <span className={`absolute inset-0 flex items-center justify-center text-sm font-bold ${strength.color}`}>
+                    {score}%
+                  </span>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="font-semibold text-sm">Profile Strength</span>
+                    <Badge variant="outline" className={`text-xs ${strength.color} border-current`}>{strength.text}</Badge>
+                  </div>
+                  <p className="text-xs text-muted-foreground mb-2">
+                    A complete profile gets you <strong>3× more shift matches</strong>. {missing.length} item{missing.length !== 1 ? "s" : ""} remaining.
+                  </p>
+                  {/* Top 3 missing items */}
+                  <div className="flex flex-wrap gap-1.5">
+                    {missing.slice(0, 3).map((item) => (
+                      <Link key={item.label} href={item.href}>
+                        <Badge
+                          variant="outline"
+                          className="text-xs gap-1 cursor-pointer hover:bg-background transition-colors"
+                        >
+                          <item.icon className="h-2.5 w-2.5" />
+                          {item.label}
+                        </Badge>
+                      </Link>
+                    ))}
+                    {missing.length > 3 && (
+                      <Badge variant="outline" className="text-xs text-muted-foreground">
+                        +{missing.length - 3} more
+                      </Badge>
+                    )}
+                  </div>
+                </div>
+              </div>
+              {/* CTA */}
+              <Link href="/locum/profile">
+                <Button size="sm" variant="outline" className={`gap-1.5 shrink-0 ${strength.color} border-current hover:bg-background`}>
+                  Complete Profile <ChevronRight className="h-3.5 w-3.5" />
+                </Button>
+              </Link>
+            </div>
+          </CardContent>
+        </Card>
+      ) : score >= 90 ? (
+        <div className="flex items-center gap-3 px-5 py-3 rounded-xl border border-green-200 bg-green-50 text-green-700">
+          <CheckCircle2 className="h-5 w-5 shrink-0" />
+          <span className="text-sm font-medium">Your profile is complete — you're fully set up for shift matching!</span>
+        </div>
+      ) : null}
 
       {/* Top Metrics */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
@@ -31,9 +149,7 @@ export default function LocumDashboard() {
             <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            {analyticsLoading ? (
-              <Skeleton className="h-8 w-[120px]" />
-            ) : (
+            {analyticsLoading ? <Skeleton className="h-8 w-[120px]" /> : (
               <div className="text-2xl font-bold">{formatCurrency(analytics?.totalEarnings || 0)}</div>
             )}
             <p className="text-xs text-muted-foreground mt-1">Lifetime earnings</p>
@@ -45,9 +161,7 @@ export default function LocumDashboard() {
             <Calendar className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            {analyticsLoading ? (
-              <Skeleton className="h-8 w-[60px]" />
-            ) : (
+            {analyticsLoading ? <Skeleton className="h-8 w-[60px]" /> : (
               <div className="text-2xl font-bold">{analytics?.totalShiftsCompleted || 0}</div>
             )}
             <p className="text-xs text-muted-foreground mt-1">Successfully finished</p>
@@ -59,9 +173,7 @@ export default function LocumDashboard() {
             <Star className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            {analyticsLoading ? (
-              <Skeleton className="h-8 w-[80px]" />
-            ) : (
+            {analyticsLoading ? <Skeleton className="h-8 w-[80px]" /> : (
               <div className="text-2xl font-bold">{analytics?.averageRating?.toFixed(1) || "N/A"}</div>
             )}
             <p className="text-xs text-muted-foreground mt-1">From clinics</p>
@@ -73,9 +185,7 @@ export default function LocumDashboard() {
             <AlertCircle className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            {analyticsLoading ? (
-              <Skeleton className="h-8 w-[80px]" />
-            ) : (
+            {analyticsLoading ? <Skeleton className="h-8 w-[80px]" /> : (
               <div className="text-2xl font-bold">{analytics?.reliabilityScore || "100"}%</div>
             )}
             <p className="text-xs text-muted-foreground mt-1">Attendance rate</p>
@@ -84,7 +194,7 @@ export default function LocumDashboard() {
       </div>
 
       <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-7">
-        
+
         {/* Upcoming Shifts */}
         <Card className="col-span-4">
           <CardHeader className="flex flex-row items-center justify-between">
@@ -117,15 +227,15 @@ export default function LocumDashboard() {
                   <div key={shift.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-4 rounded-xl border bg-card hover:bg-muted/30 transition-colors">
                     <div className="flex items-start gap-4 mb-4 sm:mb-0">
                       <div className="bg-primary/10 text-primary p-3 rounded-lg text-center min-w-[70px]">
-                        <div className="text-xs font-bold uppercase">{format(parseISO(shift.shiftDate), 'MMM')}</div>
-                        <div className="text-2xl font-black">{format(parseISO(shift.shiftDate), 'dd')}</div>
+                        <div className="text-xs font-bold uppercase">{format(parseISO(shift.shiftDate), "MMM")}</div>
+                        <div className="text-2xl font-black">{format(parseISO(shift.shiftDate), "dd")}</div>
                       </div>
                       <div>
                         <h4 className="font-semibold text-lg">{shift.title}</h4>
                         <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3 text-sm text-muted-foreground mt-1">
                           <span className="flex items-center gap-1"><Clock className="h-3 w-3" /> {shift.startTime} - {shift.endTime}</span>
                           <span className="hidden sm:inline">•</span>
-                          <span className="font-medium text-foreground">{shift.clinic?.name}</span>
+                          <span className="font-medium text-foreground">{(shift as any).clinic?.name}</span>
                         </div>
                       </div>
                     </div>
@@ -164,11 +274,11 @@ export default function LocumDashboard() {
                   <Link key={shift.id} href={`/locum/shifts/${shift.id}`}>
                     <div className="flex items-center justify-between p-3 rounded-lg border hover:border-primary/50 cursor-pointer transition-colors mb-3">
                       <div className="overflow-hidden pr-4">
-                        <h4 className="font-medium text-sm truncate">{shift.clinic?.name}</h4>
+                        <h4 className="font-medium text-sm truncate">{(shift as any).clinic?.name}</h4>
                         <div className="flex items-center gap-2 text-xs text-muted-foreground mt-1">
-                          <span>{format(parseISO(shift.shiftDate), 'MMM dd')}</span>
+                          <span>{format(parseISO(shift.shiftDate), "MMM dd")}</span>
                           <span>•</span>
-                          <span className="truncate">{shift.specialty?.name}</span>
+                          <span className="truncate">{(shift as any).specialty?.name}</span>
                         </div>
                       </div>
                       <div className="flex items-center gap-2 shrink-0">
@@ -180,7 +290,9 @@ export default function LocumDashboard() {
                 ))}
                 {matchedShifts?.data && matchedShifts.data.length > 0 && (
                   <Link href="/locum/shifts">
-                    <Button variant="ghost" className="w-full text-sm mt-2">See all {matchedShifts.total} matches</Button>
+                    <Button variant="ghost" className="w-full text-sm mt-2">
+                      See all {matchedShifts.total} matches
+                    </Button>
                   </Link>
                 )}
               </div>
