@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Calendar, Clock, MapPin, FileSignature, CheckCircle2, ChevronLeft, AlertTriangle } from "lucide-react";
+import { Calendar, Clock, MapPin, FileSignature, CheckCircle2, ChevronLeft, AlertTriangle, FileText } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 import { useQueryClient } from "@tanstack/react-query";

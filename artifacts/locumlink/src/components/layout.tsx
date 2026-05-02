@@ -10,7 +10,9 @@ import {
   Bell, 
   Wallet,
   ActivitySquare,
-  Users
+  Users,
+  FileText,
+  Star
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -25,6 +27,9 @@ export function Layout({ children }: { children: React.ReactNode }) {
     { name: "My Applications", href: "/locum/applications", icon: ActivitySquare },
     { name: "My Bookings", href: "/locum/bookings", icon: CalendarDays },
     { name: "Earnings", href: "/locum/earnings", icon: Wallet },
+    { name: "Documents", href: "/locum/documents", icon: FileText },
+    { name: "Notifications", href: "/locum/notifications", icon: Bell },
+    { name: "Ratings", href: "/locum/ratings", icon: Star },
     { name: "Profile", href: "/locum/profile", icon: User },
   ];
 

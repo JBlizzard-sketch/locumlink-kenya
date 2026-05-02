@@ -19,6 +19,10 @@ import LocumCalendar from "@/pages/locum/calendar";
 import LocumProfile from "@/pages/locum/profile";
 import LocumNotifications from "@/pages/locum/notifications";
 import LocumRatings from "@/pages/locum/ratings";
+import LocumDocuments from "@/pages/locum/documents";
+import LocumContract from "@/pages/locum/contract";
+import LocumMatchedShifts from "@/pages/locum/matched-shifts";
+import ClinicMatchedLocums from "@/pages/clinic/matched-locums";
 
 // Clinic Pages
 import ClinicDashboard from "@/pages/clinic/dashboard";
@@ -57,6 +61,9 @@ export default function Router() {
       <Route path="/locum/profile">{() => <ProtectedRoute allowedRoles={["locum"]}><Layout><LocumProfile /></Layout></ProtectedRoute>}</Route>
       <Route path="/locum/notifications">{() => <ProtectedRoute allowedRoles={["locum"]}><Layout><LocumNotifications /></Layout></ProtectedRoute>}</Route>
       <Route path="/locum/ratings">{() => <ProtectedRoute allowedRoles={["locum"]}><Layout><LocumRatings /></Layout></ProtectedRoute>}</Route>
+      <Route path="/locum/documents">{() => <ProtectedRoute allowedRoles={["locum"]}><Layout><LocumDocuments /></Layout></ProtectedRoute>}</Route>
+      <Route path="/locum/bookings/:id/contract">{() => <ProtectedRoute allowedRoles={["locum"]}><Layout><LocumContract /></Layout></ProtectedRoute>}</Route>
+      <Route path="/locum/matched-shifts">{() => <ProtectedRoute allowedRoles={["locum"]}><Layout><LocumMatchedShifts /></Layout></ProtectedRoute>}</Route>
 
       {/* Clinic Routes */}
       <Route path="/clinic/dashboard">{() => <ProtectedRoute allowedRoles={["clinic_admin", "clinic_hr"]}><Layout><ClinicDashboard /></Layout></ProtectedRoute>}</Route>
@@ -68,6 +75,7 @@ export default function Router() {
       <Route path="/clinic/analytics">{() => <ProtectedRoute allowedRoles={["clinic_admin", "clinic_hr"]}><Layout><ClinicAnalytics /></Layout></ProtectedRoute>}</Route>
       <Route path="/clinic/profile">{() => <ProtectedRoute allowedRoles={["clinic_admin", "clinic_hr"]}><Layout><ClinicProfile /></Layout></ProtectedRoute>}</Route>
       <Route path="/clinic/locums">{() => <ProtectedRoute allowedRoles={["clinic_admin", "clinic_hr"]}><Layout><ClinicLocumsDirectory /></Layout></ProtectedRoute>}</Route>
+      <Route path="/clinic/shifts/:id/matched">{() => <ProtectedRoute allowedRoles={["clinic_admin", "clinic_hr"]}><Layout><ClinicMatchedLocums /></Layout></ProtectedRoute>}</Route>
 
       {/* Admin Routes */}
       <Route path="/admin/dashboard">{() => <ProtectedRoute allowedRoles={["platform_admin"]}><Layout><AdminDashboard /></Layout></ProtectedRoute>}</Route>

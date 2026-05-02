@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ChevronLeft, MapPin, Calendar, Clock, Star, AlertCircle, CheckCircle2, XCircle } from "lucide-react";
+import { ChevronLeft, MapPin, Calendar, Clock, Star, AlertCircle, CheckCircle2, XCircle, Sparkles } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 import { useQueryClient } from "@tanstack/react-query";
