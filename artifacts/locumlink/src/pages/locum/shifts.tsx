@@ -15,12 +15,27 @@ import { Link } from "wouter";
 import {
   Calendar, Clock, MapPin, ShieldCheck, Filter, Zap, ArrowUpDown,
   CheckCircle2, Clock4, Star, AlertTriangle, X, SlidersHorizontal,
-  TrendingUp, ChevronRight,
+  TrendingUp, ChevronRight, Send,
 } from "lucide-react";
 import { format, parseISO, differenceInDays } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 
 const BASE_URL = import.meta.env.BASE_URL as string;
+
+function useMyInvitations() {
+  const token = localStorage.getItem("token");
+  return useQuery<{ data: any[]; total: number }>({
+    queryKey: ["my-invitations"],
+    queryFn: async () => {
+      const res = await fetch(`${BASE_URL}api/shifts/my-invitations`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
+      if (!res.ok) throw new Error("Failed to load");
+      return res.json();
+    },
+    staleTime: 60_000,
+  });
+}
 
 const NAIROBI_SUB_COUNTIES = [
   "Westlands", "Starehe", "Langata", "Karen", "Kileleshwa", "Kilimani",
@@ -275,7 +290,7 @@ function SkeletonCards() {
 }
 
 export default function LocumShifts() {
-  const [tab, setTab] = useState<"all" | "recommended">("all");
+  const [tab, setTab] = useState<"all" | "recommended" | "invited">("all");
   const [specialtyId, setSpecialtyId] = useState("all");
   const [subCounty, setSubCounty] = useState("all");
   const [urgency, setUrgency] = useState("all");
@@ -287,6 +302,7 @@ export default function LocumShifts() {
 
   const { data: specialties } = useListSpecialties();
   const { data: matchedData, isLoading: matchedLoading } = useListMatchedShifts();
+  const { data: invitedData, isLoading: invitedLoading } = useMyInvitations();
   const { data: appMapData } = useMyApplicationsMap();
   const applyToShift = useApplyToShift();
   const { toast } = useToast();
@@ -368,8 +384,9 @@ export default function LocumShifts() {
     specialties, onReset: resetFilters,
   };
 
-  const isLoading = tab === "all" ? shiftsLoading : matchedLoading;
-  const currentShifts = tab === "all" ? allShifts : recommendedShifts;
+  const invitedShifts = (invitedData?.data ?? []) as any[];
+  const isLoading = tab === "all" ? shiftsLoading : tab === "recommended" ? matchedLoading : invitedLoading;
+  const currentShifts = tab === "all" ? allShifts : tab === "recommended" ? recommendedShifts : invitedShifts;
 
   return (
     <div className="max-w-7xl mx-auto space-y-5">
@@ -443,6 +460,14 @@ export default function LocumShifts() {
                 <TabsTrigger value="recommended" className="gap-1.5">
                   <Zap className="h-3.5 w-3.5" /> Recommended
                 </TabsTrigger>
+                <TabsTrigger value="invited" className="gap-1.5 relative">
+                  <Send className="h-3.5 w-3.5" /> Invited
+                  {invitedShifts.length > 0 && (
+                    <span className="absolute -top-1 -right-1 h-4 w-4 bg-primary text-primary-foreground text-[9px] font-bold rounded-full flex items-center justify-center">
+                      {invitedShifts.length}
+                    </span>
+                  )}
+                </TabsTrigger>
               </TabsList>
               {!isLoading && (
                 <p className="text-sm text-muted-foreground">
@@ -513,6 +538,42 @@ export default function LocumShifts() {
                         shift={shift}
                         appEntry={appMap[shift.id]}
                         matchScore={shift.matchScore}
+                        onQuickApply={handleQuickApply}
+                        applying={applyToShift.isPending}
+                      />
+                    ))}
+                  </div>
+                </div>
+              )}
+            </TabsContent>
+
+            <TabsContent value="invited" className="mt-4">
+              {invitedLoading ? (
+                <SkeletonCards />
+              ) : invitedShifts.length === 0 ? (
+                <div className="text-center py-16 bg-card rounded-xl border border-dashed">
+                  <Send className="h-12 w-12 text-muted-foreground mx-auto mb-4 opacity-40" />
+                  <h3 className="font-semibold text-lg">No invitations yet</h3>
+                  <p className="text-muted-foreground text-sm mt-1 mb-4 max-w-sm mx-auto">
+                    When a clinic invites you to apply for a shift, it will appear here. Keep your profile complete to attract more invitations.
+                  </p>
+                  <Link href="/locum/profile">
+                    <Button variant="outline">Complete profile</Button>
+                  </Link>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground bg-cyan-50 border border-cyan-200 rounded-lg px-3 py-2">
+                    <Send className="h-4 w-4 text-cyan-600" />
+                    <span className="text-cyan-800">Clinics have personally invited you to apply for these shifts. Use <strong>Quick Apply</strong> to respond immediately.</span>
+                  </div>
+                  <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+                    {invitedShifts.map((shift: any) => (
+                      <ShiftCard
+                        key={shift.id}
+                        shift={shift}
+                        appEntry={appMap[shift.id]}
+                        matchScore={matchScoreMap[shift.id]}
                         onQuickApply={handleQuickApply}
                         applying={applyToShift.isPending}
                       />

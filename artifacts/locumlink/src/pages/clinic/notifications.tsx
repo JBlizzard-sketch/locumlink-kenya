@@ -7,6 +7,17 @@ import { Bell, Check, Clock, CheckCheck, ActivitySquare, CalendarCheck, ShieldCh
 import { formatDistanceToNow, parseISO } from "date-fns";
 import { useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
+import { Link } from "wouter";
+
+function getClinicNotifUrl(type: string, metadata: any): string | null {
+  if (type === "application_received" && metadata?.shiftId) return `/clinic/shifts/${metadata.shiftId}`;
+  if (type === "application_withdrawn" && metadata?.shiftId) return `/clinic/shifts/${metadata.shiftId}`;
+  if (type === "booking_updated" && metadata?.bookingId) return `/clinic/bookings/${metadata.bookingId}`;
+  if (type === "dispute_opened" || type === "dispute_resolved") return `/clinic/bookings`;
+  if (type === "credential_verified" || type === "credential_rejected") return `/clinic/profile`;
+  if (type === "payment_released") return `/clinic/analytics`;
+  return null;
+}
 
 const BASE_URL = import.meta.env.BASE_URL as string;
 
@@ -101,18 +112,14 @@ export default function ClinicNotifications() {
             <div className="divide-y">
               {notifications?.data?.map((notification) => {
                 const isUnread = notification.status !== "read";
-                const meta = TYPE_META[notification.type ?? ""] ?? { color: "bg-primary", Icon: Bell, label: notification.type ?? "" };
+                const meta = TYPE_META[notification.type ?? ""] ?? { color: "bg-primary", Icon: Bell, label: notification.type?.replace(/_/g, " ") ?? "" };
                 const { color, Icon, label } = meta;
-                return (
-                  <div
-                    key={notification.id}
-                    className={`p-5 transition-colors hover:bg-muted/30 flex gap-4 ${isUnread ? "bg-primary/5" : ""}`}
-                  >
-                    {/* Icon dot */}
+                const url = getClinicNotifUrl(notification.type ?? "", (notification as any).metadata);
+                const rowContent = (
+                  <>
                     <div className={`mt-1 h-8 w-8 rounded-full flex items-center justify-center shrink-0 ${isUnread ? color : "bg-muted"}`}>
                       <Icon className={`h-4 w-4 ${isUnread ? "text-white" : "text-muted-foreground"}`} />
                     </div>
-
                     <div className="flex-1 min-w-0 space-y-1">
                       <div className="flex items-start justify-between gap-2">
                         <p className={`text-sm font-semibold leading-snug ${isUnread ? "text-foreground" : "text-muted-foreground"}`}>
@@ -126,22 +133,39 @@ export default function ClinicNotifications() {
                       <p className={`text-sm leading-relaxed ${isUnread ? "text-muted-foreground" : "text-muted-foreground/70"}`}>
                         {notification.content}
                       </p>
-                      <Badge variant="outline" className="text-xs capitalize mt-1">
-                        {label}
-                      </Badge>
+                      <div className="flex items-center gap-2 mt-1">
+                        <Badge variant="outline" className="text-xs capitalize">{label}</Badge>
+                        {url && <span className="text-xs text-primary font-medium">View →</span>}
+                      </div>
                     </div>
-
                     {isUnread && (
                       <Button
                         variant="ghost"
                         size="icon"
-                        onClick={() => handleMarkRead(notification.id)}
+                        onClick={(e) => { e.stopPropagation(); e.preventDefault(); handleMarkRead(notification.id); }}
                         className="h-8 w-8 shrink-0 mt-0.5"
                         title="Mark as read"
                       >
                         <Check className="h-4 w-4" />
                       </Button>
                     )}
+                  </>
+                );
+                return url ? (
+                  <Link
+                    key={notification.id}
+                    href={url}
+                    onClick={() => isUnread && handleMarkRead(notification.id)}
+                    className={`p-5 flex gap-4 cursor-pointer transition-colors hover:bg-muted/40 ${isUnread ? "bg-primary/5" : ""}`}
+                  >
+                    {rowContent}
+                  </Link>
+                ) : (
+                  <div
+                    key={notification.id}
+                    className={`p-5 flex gap-4 transition-colors hover:bg-muted/30 ${isUnread ? "bg-primary/5" : ""}`}
+                  >
+                    {rowContent}
                   </div>
                 );
               })}

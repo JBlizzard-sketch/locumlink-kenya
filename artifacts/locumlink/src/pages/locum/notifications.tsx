@@ -3,22 +3,38 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Bell, Check, Clock, CheckCheck } from "lucide-react";
+import { Bell, Check, Clock, CheckCheck, BriefcaseMedical, CalendarCheck, ShieldCheck, AlertTriangle, DollarSign, UserCheck, ActivitySquare, Send } from "lucide-react";
 import { formatDistanceToNow, parseISO } from "date-fns";
 import { useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
+import { Link } from "wouter";
+
+const TYPE_META: Record<string, { color: string; Icon: React.ElementType; label: string }> = {
+  shift_invitation:       { color: "bg-cyan-500",    Icon: Send,             label: "Shift Invitation"  },
+  application_shortlisted:{ color: "bg-purple-500",  Icon: UserCheck,        label: "Shortlisted"       },
+  application_confirmed:  { color: "bg-emerald-500", Icon: CalendarCheck,    label: "Booking Confirmed" },
+  application_rejected:   { color: "bg-red-400",     Icon: ActivitySquare,   label: "Not Selected"      },
+  shift_cancelled:        { color: "bg-orange-500",  Icon: AlertTriangle,    label: "Shift Cancelled"   },
+  new_shift:              { color: "bg-cyan-500",    Icon: BriefcaseMedical, label: "New Shift"         },
+  credential_verified:    { color: "bg-green-500",   Icon: ShieldCheck,      label: "Verification"      },
+  credential_rejected:    { color: "bg-destructive", Icon: ShieldCheck,      label: "Verification"      },
+  payment_received:       { color: "bg-green-600",   Icon: DollarSign,       label: "Payment"           },
+};
+
+function getLocumNotifUrl(type: string, metadata: any): string | null {
+  if (type === "shift_invitation" && metadata?.shiftId) return `/locum/shifts/${metadata.shiftId}`;
+  if (type === "application_shortlisted" && metadata?.shiftId) return `/locum/shifts/${metadata.shiftId}`;
+  if (type === "application_confirmed" && metadata?.bookingId) return `/locum/bookings/${metadata.bookingId}`;
+  if (type === "application_rejected") return `/locum/applications`;
+  if (type === "shift_cancelled") return `/locum/shifts`;
+  if (type === "new_shift" && metadata?.shiftId) return `/locum/shifts/${metadata.shiftId}`;
+  if (type === "credential_verified" || type === "credential_rejected") return `/locum/documents`;
+  if (type === "payment_received") return `/locum/earnings`;
+  return null;
+}
 
 const BASE_URL = import.meta.env.BASE_URL as string;
 
-const TYPE_COLORS: Record<string, string> = {
-  application_update: "bg-blue-500",
-  booking_confirmed: "bg-emerald-500",
-  payment_received: "bg-green-600",
-  shift_reminder: "bg-amber-500",
-  verification_update: "bg-purple-500",
-  dispute_update: "bg-red-500",
-  new_shift: "bg-cyan-500",
-};
 
 export default function LocumNotifications() {
   const { data: notifications, isLoading } = useListNotifications();
@@ -100,22 +116,17 @@ export default function LocumNotifications() {
             <div className="divide-y">
               {notifications?.data?.map((notification) => {
                 const isUnread = notification.status !== "read";
-                const dotColor = TYPE_COLORS[notification.type ?? ""] ?? "bg-primary";
-                return (
-                  <div
-                    key={notification.id}
-                    className={`p-5 transition-colors hover:bg-muted/30 flex gap-4 ${isUnread ? "bg-primary/5" : ""}`}
-                  >
-                    <div className="mt-1.5 shrink-0">
-                      {isUnread ? (
-                        <div className={`h-2.5 w-2.5 rounded-full ${dotColor}`} />
-                      ) : (
-                        <Bell className="h-4 w-4 text-muted-foreground" />
-                      )}
+                const meta = TYPE_META[notification.type ?? ""] ?? { color: "bg-primary", Icon: Bell, label: notification.type?.replace(/_/g, " ") ?? "" };
+                const { color, Icon, label } = meta;
+                const url = getLocumNotifUrl(notification.type ?? "", (notification as any).metadata);
+                const rowContent = (
+                  <>
+                    <div className={`mt-1 h-8 w-8 rounded-full flex items-center justify-center shrink-0 ${isUnread ? color : "bg-muted"}`}>
+                      <Icon className={`h-4 w-4 ${isUnread ? "text-white" : "text-muted-foreground"}`} />
                     </div>
                     <div className="flex-1 min-w-0 space-y-1">
                       <div className="flex items-start justify-between gap-2">
-                        <p className={`text-sm font-medium leading-snug ${isUnread ? "text-foreground" : "text-muted-foreground"}`}>
+                        <p className={`text-sm font-semibold leading-snug ${isUnread ? "text-foreground" : "text-muted-foreground"}`}>
                           {notification.title}
                         </p>
                         <span className="text-xs text-muted-foreground flex items-center gap-1 shrink-0 mt-0.5">
@@ -126,23 +137,39 @@ export default function LocumNotifications() {
                       <p className={`text-sm leading-relaxed ${isUnread ? "text-muted-foreground" : "text-muted-foreground/70"}`}>
                         {notification.content}
                       </p>
-                      {notification.type && (
-                        <Badge variant="outline" className="text-xs capitalize mt-1">
-                          {notification.type.replace(/_/g, " ")}
-                        </Badge>
-                      )}
+                      <div className="flex items-center gap-2 mt-1">
+                        <Badge variant="outline" className="text-xs capitalize">{label}</Badge>
+                        {url && <span className="text-xs text-primary font-medium">View →</span>}
+                      </div>
                     </div>
                     {isUnread && (
                       <Button
                         variant="ghost"
                         size="icon"
-                        onClick={() => handleMarkRead(notification.id)}
+                        onClick={(e) => { e.stopPropagation(); e.preventDefault(); handleMarkRead(notification.id); }}
                         className="h-8 w-8 shrink-0 mt-0.5"
                         title="Mark as read"
                       >
                         <Check className="h-4 w-4" />
                       </Button>
                     )}
+                  </>
+                );
+                return url ? (
+                  <Link
+                    key={notification.id}
+                    href={url}
+                    onClick={() => isUnread && handleMarkRead(notification.id)}
+                    className={`p-5 flex gap-4 cursor-pointer transition-colors hover:bg-muted/40 ${isUnread ? "bg-primary/5" : ""}`}
+                  >
+                    {rowContent}
+                  </Link>
+                ) : (
+                  <div
+                    key={notification.id}
+                    className={`p-5 flex gap-4 transition-colors hover:bg-muted/30 ${isUnread ? "bg-primary/5" : ""}`}
+                  >
+                    {rowContent}
                   </div>
                 );
               })}
