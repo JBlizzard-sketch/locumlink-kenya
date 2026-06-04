@@ -1,12 +1,29 @@
 import { Router } from "express";
 import { db } from "@workspace/db";
-import { locumsTable, clinicsTable, disputesTable, notificationsTable, paymentsTable, bookingsTable, shiftsTable } from "@workspace/db";
-import { eq, inArray, SQL } from "drizzle-orm";
+import {
+  locumsTable, clinicsTable, disputesTable, notificationsTable,
+  paymentsTable, bookingsTable, shiftsTable, auditLogsTable, usersTable,
+} from "@workspace/db";
+import { eq, SQL, desc } from "drizzle-orm";
 import { AdminVerifyLocumBody, AdminVerifyClinicBody, AdminResolveDisputeBody } from "@workspace/api-zod";
 import { authenticate, requireRole } from "../middlewares/auth";
 import { sendToUser } from "../lib/sse";
 
 const router = Router();
+
+async function writeAudit(
+  userId: number,
+  action: string,
+  entityType: string,
+  entityId: number | null,
+  metadata?: Record<string, unknown>,
+) {
+  try {
+    await db.insert(auditLogsTable).values({ userId, action, entityType, entityId, metadata });
+  } catch {
+    // non-critical — never block main response
+  }
+}
 
 router.get("/admin/verification-queue", authenticate, requireRole("platform_admin"), async (req, res) => {
   try {
@@ -48,10 +65,8 @@ router.post("/admin/locums/:id/verify", authenticate, requireRole("platform_admi
   const id = parseInt(req.params.id as string);
   if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
   const parse = AdminVerifyLocumBody.safeParse(req.body);
-  if (!parse.success) {
-    res.status(400).json({ error: "Validation failed" });
-    return;
-  }
+  if (!parse.success) { res.status(400).json({ error: "Validation failed" }); return; }
+  const adminUserId = (req as any).user.userId;
   try {
     const [locum] = await db.update(locumsTable).set({
       verificationStatus: parse.data.status,
@@ -77,6 +92,7 @@ router.post("/admin/locums/:id/verify", authenticate, requireRole("platform_admi
         metadata: { userType: "locum" },
       });
       sendToUser(locum.userId, { type: eventType, payload: { status: parse.data.status, notes: parse.data.notes } });
+      await writeAudit(adminUserId, `locum_${parse.data.status}`, "locum", id, { notes: parse.data.notes });
     }
 
     res.json({ message: `Locum ${parse.data.status}` });
@@ -90,10 +106,8 @@ router.post("/admin/clinics/:id/verify", authenticate, requireRole("platform_adm
   const id = parseInt(req.params.id as string);
   if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
   const parse = AdminVerifyClinicBody.safeParse(req.body);
-  if (!parse.success) {
-    res.status(400).json({ error: "Validation failed" });
-    return;
-  }
+  if (!parse.success) { res.status(400).json({ error: "Validation failed" }); return; }
+  const adminUserId = (req as any).user.userId;
   try {
     const [clinic] = await db.update(clinicsTable).set({
       verificationStatus: parse.data.status as any,
@@ -119,6 +133,7 @@ router.post("/admin/clinics/:id/verify", authenticate, requireRole("platform_adm
         metadata: { userType: "clinic" },
       });
       sendToUser(clinic.userId, { type: eventType, payload: { status: parse.data.status, notes: parse.data.notes } });
+      await writeAudit(adminUserId, `clinic_${parse.data.status}`, "clinic", id, { notes: parse.data.notes });
     }
 
     res.json({ message: `Clinic ${parse.data.status}` });
@@ -132,10 +147,8 @@ router.post("/admin/disputes/:id/resolve", authenticate, requireRole("platform_a
   const id = parseInt(req.params.id as string);
   if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
   const parse = AdminResolveDisputeBody.safeParse(req.body);
-  if (!parse.success) {
-    res.status(400).json({ error: "Validation failed" });
-    return;
-  }
+  if (!parse.success) { res.status(400).json({ error: "Validation failed" }); return; }
+  const adminUserId = (req as any).user.userId;
   try {
     const [dispute] = await db.update(disputesTable).set({
       status: parse.data.status as any,
@@ -147,7 +160,6 @@ router.post("/admin/disputes/:id/resolve", authenticate, requireRole("platform_a
     }).where(eq(disputesTable.id, id)).returning();
     if (!dispute) { res.status(404).json({ error: "Dispute not found" }); return; }
 
-    // Push SSE to the locum who raised the dispute (if available)
     if (dispute.raisedByLocumId) {
       const [locum] = await db.select().from(locumsTable).where(eq(locumsTable.id, dispute.raisedByLocumId)).limit(1);
       if (locum) {
@@ -157,6 +169,11 @@ router.post("/admin/disputes/:id/resolve", authenticate, requireRole("platform_a
         });
       }
     }
+    await writeAudit(adminUserId, "dispute_resolved", "dispute", id, {
+      status: parse.data.status,
+      penaltyLocum: parse.data.penaltyAppliedToLocum,
+      penaltyClinic: parse.data.penaltyAppliedToClinic,
+    });
 
     res.json(dispute);
   } catch (err) {
@@ -236,6 +253,7 @@ router.get("/admin/payments", authenticate, requireRole("platform_admin"), async
 router.post("/admin/payments/:id/release", authenticate, requireRole("platform_admin"), async (req, res) => {
   const id = parseInt(req.params.id as string);
   if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
+  const adminUserId = (req as any).user.userId;
   try {
     const [existing] = await db.select().from(paymentsTable).where(eq(paymentsTable.id, id)).limit(1);
     if (!existing) { res.status(404).json({ error: "Payment not found" }); return; }
@@ -253,7 +271,6 @@ router.post("/admin/payments/:id/release", authenticate, requireRole("platform_a
       updatedAt: new Date(),
     }).where(eq(paymentsTable.id, id)).returning();
 
-    // Notify the locum
     const [booking] = await db
       .select({ locumId: bookingsTable.locumId })
       .from(bookingsTable)
@@ -272,10 +289,55 @@ router.post("/admin/payments/:id/release", authenticate, requireRole("platform_a
         sendToUser(locum.userId, { type: "payment_released", payload: { paymentId: payment.id, amount: payment.locumPayout } });
       }
     }
+    await writeAudit(adminUserId, "payment_released", "payment", id, {
+      amount: payment.locumPayout,
+      mpesaTransactionId: mpesaTransactionId ?? null,
+    });
 
     res.json({ ...payment, locumName: "", clinicName: "", shiftDate: null, shiftTitle: null });
   } catch (err) {
     req.log.error({ err }, "Admin release payment error");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+router.get("/admin/audit-logs", authenticate, requireRole("platform_admin"), async (req, res) => {
+  try {
+    const page = parseInt(req.query.page as string) || 1;
+    const limit = Math.min(parseInt(req.query.limit as string) || 50, 200);
+    const offset = (page - 1) * limit;
+    const entityType = req.query.entityType as string | undefined;
+
+    const baseQuery = db
+      .select({
+        id: auditLogsTable.id,
+        action: auditLogsTable.action,
+        entityType: auditLogsTable.entityType,
+        entityId: auditLogsTable.entityId,
+        metadata: auditLogsTable.metadata,
+        ipAddress: auditLogsTable.ipAddress,
+        createdAt: auditLogsTable.createdAt,
+        userEmail: usersTable.email,
+        userRole: usersTable.role,
+      })
+      .from(auditLogsTable)
+      .leftJoin(usersTable, eq(auditLogsTable.userId, usersTable.id));
+
+    const rows = entityType
+      ? await baseQuery
+          .where(eq(auditLogsTable.entityType, entityType))
+          .orderBy(desc(auditLogsTable.createdAt))
+          .limit(limit)
+          .offset(offset)
+      : await baseQuery
+          .orderBy(desc(auditLogsTable.createdAt))
+          .limit(limit)
+          .offset(offset);
+
+    const data = rows.map(r => ({ ...r, createdAt: r.createdAt.toISOString() }));
+    res.json({ data, total: data.length, page, limit });
+  } catch (err) {
+    req.log.error({ err }, "Admin audit logs error");
     res.status(500).json({ error: "Internal server error" });
   }
 });

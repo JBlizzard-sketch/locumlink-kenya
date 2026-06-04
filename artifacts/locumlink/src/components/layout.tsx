@@ -18,6 +18,7 @@ import {
   MessageSquare,
   Menu,
   X,
+  ScrollText,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -94,6 +95,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
     { name: "Disputes",       href: "/admin/disputes",      icon: ActivitySquare },
     { name: "Payments",       href: "/admin/payments",      icon: Wallet },
     { name: "Users",          href: "/admin/users",         icon: User },
+    { name: "Audit Log",      href: "/admin/audit",         icon: ScrollText },
   ];
 
   const navItems =

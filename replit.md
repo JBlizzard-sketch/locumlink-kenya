@@ -34,7 +34,7 @@ Production-grade two-sided marketplace connecting verified locum medical profess
 | Clinic | hr@agakhanklinic.co.ke | Clinic@2024! |
 | Admin | admin@locumlink.co.ke | Admin@2024! |
 
-## Completed Phases (1–13)
+## Completed Phases (1–47)
 
 | Phase | Description |
 |-------|-------------|
@@ -51,10 +51,19 @@ Production-grade two-sided marketplace connecting verified locum medical profess
 | 17–26 | Ratings, Earnings, Calendar, Locum Matched Shifts, Clinic Matched Locums, Locum Documents (GCS upload), Locum Contract signing, Clinic Templates, Clinic Analytics (recharts), Admin Users/Disputes/Payments pages; SSE `shift_invitation` + `payment_released` event types; Admin payment release with M-Pesa ref dialog |
 | 27 | Mobile nav drawer (Sheet), CSV export for clinic analytics, KRA income report CSV for locum earnings |
 | 28 | Post-registration onboarding wizard: `POST /onboarding/locum` + `POST /onboarding/clinic` backend routes (idempotent); 2-step wizard frontend at `/onboarding` for locum (registration body/number, specialty, sub-county, M-Pesa) and clinic (name, type, address, contact info); auth-provider redirects to `/onboarding` after registration instead of dashboard; unauthenticated guard redirects to `/login`; OpenAPI spec + codegen |
-| 29 | Forgot/reset password flow: `POST /auth/forgot-password` (JWT reset token, 1h expiry, separate HMAC secret) + `POST /auth/reset-password` (validates token, updates hash); frontend `/forgot-password` (email form → token display with copy button) + `/reset-password` (token + new password + confirm + reveal toggle + success state); "Forgot your password?" link on login page; Critical auth fix: `setAuthTokenGetter(() => localStorage.getItem("token"))` wired in main.tsx — all generated API hooks now attach Bearer tokens; token stored to localStorage on login/register, cleared on logout; Onboarding-aware login redirect: checks `/locums/me` or `/clinics/me` after login, sends to `/onboarding` if 404, otherwise lands on role dashboard |
-| 30 | Account Settings page (`/account/settings`): account info card (email, phone, role, joined date, verification badges), change-password form (current + new + confirm, 4-segment strength bar, reveal toggles, inline success state); `POST /auth/change-password` backend route (auth-required, verifies current password with bcrypt before updating hash); "Account Settings" link in both desktop sidebar footer and mobile drawer; "Edit Profile" shortcut link for locums/clinics; "Go to password reset" shortcut in settings; OpenAPI spec + codegen for `useChangePassword` |
-| 31 | Locum profile photo upload: `GET /api/locums/:id/photo` public endpoint (no auth required, serves GCS object as image with 1h cache header — enables `<img>` src usage without Bearer token gymnastics); `profilePhotoUrl` added to `PATCH /locums/:id/documents` (photo updates do NOT set verificationStatus=pending, only actual document fields do); Profile photo card added at top of locum profile page — 80px avatar with camera icon overlay button, "Upload Photo"/"Change Photo" button, 5MB/image-type validation, GCS upload via `useUpload` + PATCH to save path, cache-busting `?t=` query param for instant preview refresh, "Photo uploaded" confirmation; clinic `/clinic/locums/:id` profile view updated to use the public photo URL |
-| 32 | Shift invitation from locum profile + clinic dashboard enhancements: "Invite to a Shift" primary button + "Post a New Shift" secondary button replace old action on `/clinic/locums/:id`; clicking "Invite" opens a Dialog that lazy-fetches the clinic's own open shifts (enabled only when dialog is open), shows a shift picker Select, calls `POST /shifts/:shiftId/invite/:locumId` → locum gets SSE `shift_invitation` + in-app notification; success state shows "Invitation sent" badge; clinic booking detail locum avatar fixed to use `/api/locums/:id/photo` public endpoint (was using raw GCS path); clinic dashboard: "Verification" stat card replaced with "Pending Reviews" — shows count of unreviewed applications (amber when >0) with direct link to `/clinic/applications` |
+| 29 | Forgot/reset password flow: `POST /auth/forgot-password` (JWT reset token, 1h expiry, separate HMAC secret) + `POST /auth/reset-password` (validates token, updates hash); frontend `/forgot-password` + `/reset-password`; Critical auth fix: `setAuthTokenGetter` wired in main.tsx; Onboarding-aware login redirect |
+| 30 | Account Settings page: account info card, change-password form; `POST /auth/change-password` backend route |
+| 31 | Locum profile photo upload: `GET /api/locums/:id/photo` public endpoint, GCS upload via `useUpload` + PATCH to save path |
+| 32 | Shift invitation from locum profile; clinic dashboard Pending Reviews stat card |
+| 33–39 | (Various bug fixes, TS improvements, sort/filter enhancements) |
+| 40 | Fixed 3 TypeScript errors in clinic shift detail page |
+| 41 | Shift invitations section on locum dashboard (live invite cards from clinics) |
+| 42 | Notification preferences card in Account Settings (7 event toggles, 3 channel toggles) |
+| 43 | Clinic locums directory: experience filter, sort options, urgent-available toggle; backend `isAvailableForUrgent` DB filter |
+| 44 | Admin users page: status filter pills with counts, summary stat cards, pending-review quick-link, per-row Review button |
+| 45 | Admin Audit Log: `GET /admin/audit-logs` backend endpoint; audit writes on verify locum/clinic, resolve dispute, release payment; `/admin/audit` page with entity-type filter + pagination |
+| 46 | Clinic Quick Post Urgent Shift: amber "Post Urgent Shift" button in dashboard header + quick actions; opens a dialog with minimal fields (title, specialty, date, time, rate), posts as `urgency: urgent` |
+| 47 | Comprehensive documentation: local dev setup, environment variables reference, local deployment instructions, cloud/production deployment guide |
 
 ## Architecture Notes
 
@@ -63,6 +72,7 @@ Production-grade two-sided marketplace connecting verified locum medical profess
 - **Booking status enum**: `confirmed | checked_in | completed | disputed | cancelled | no_show`
 - **Notification badge**: polls `/api/notifications` every 30s in layout sidebar for locum users
 - **Seed idempotency**: uses `onConflictDoNothing()` throughout; shift guard uses `>= 10` existing check rather than early return so notifications always re-seed
+- **Audit log**: written asynchronously (non-blocking) by `writeAudit()` helper in `admin.ts` after verify, dispute-resolve, and payment-release actions
 
 ## Package Layout
 
@@ -79,3 +89,282 @@ lib/
 scripts/
   src/seed.ts         Idempotent demo seed
 ```
+
+---
+
+## Deployment Guide
+
+### Local Development
+
+#### Prerequisites
+
+| Tool | Minimum version | Install |
+|------|----------------|---------|
+| Node.js | 24.x | https://nodejs.org or `nvm install 24` |
+| pnpm | 9.x | `npm i -g pnpm` |
+| PostgreSQL | 15 or 16 | https://www.postgresql.org/download/ |
+| Git | any | https://git-scm.com |
+
+#### Step-by-step setup
+
+```bash
+# 1. Clone
+git clone https://github.com/JBlizzard-sketch/locumlink-kenya.git
+cd locumlink-kenya
+
+# 2. Install dependencies (all workspaces)
+pnpm install
+
+# 3. Copy and fill in environment variables (see reference below)
+cp .env.example .env   # if provided; otherwise create .env manually
+
+# 4. Push the database schema
+pnpm --filter @workspace/db run push
+
+# 5. Seed demo data (idempotent — safe to run multiple times)
+pnpm --filter @workspace/scripts run seed
+
+# 6. Start the API server (terminal 1)
+PORT=8080 pnpm --filter @workspace/api-server run dev
+
+# 7. Start the frontend (terminal 2)
+PORT=5173 BASE_PATH=/ pnpm --filter @workspace/locumlink run dev
+```
+
+Open `http://localhost:5173` in your browser.
+The API is at `http://localhost:8080`.
+
+> **Note for local dev:** Vite's dev server proxies `/api` requests to `localhost:8080`. Both services must be running at the same time.
+
+#### Environment Variables Reference
+
+Create a `.env` file in the **project root** (all packages inherit from it via Drizzle / process.env):
+
+```env
+# ── Database ───────────────────────────────────────────
+DATABASE_URL=postgresql://user:password@localhost:5432/locumlink
+
+# ── Auth ───────────────────────────────────────────────
+SESSION_SECRET=your-32-char-random-secret-here
+
+# ── Object / File Storage (Google Cloud Storage) ───────
+DEFAULT_OBJECT_STORAGE_BUCKET_ID=your-gcs-bucket-name
+PRIVATE_OBJECT_DIR=private
+PUBLIC_OBJECT_SEARCH_PATHS=public
+
+# ── M-Pesa (Safaricom Daraja) ──────────────────────────
+MPESA_CONSUMER_KEY=your-consumer-key
+MPESA_CONSUMER_SECRET=your-consumer-secret
+MPESA_SHORTCODE=your-shortcode
+MPESA_PASSKEY=your-passkey
+MPESA_ENVIRONMENT=sandbox    # or "production"
+
+# ── Africa's Talking SMS ───────────────────────────────
+AT_USERNAME=your-at-username
+AT_API_KEY=your-at-api-key
+
+# ── Optional ───────────────────────────────────────────
+NODE_ENV=development
+PORT=8080
+```
+
+> **On Replit** these are stored as Secrets (never in files). Never commit a `.env` file with real values to version control.
+
+---
+
+### Deploying on Replit (Recommended)
+
+Replit handles hosting, TLS, scaling, and environment variable injection automatically.
+
+#### One-click deploy
+
+1. Open the project on Replit (https://replit.com)
+2. Make sure all **Secrets** are set under the Secrets tab:
+   - `DATABASE_URL`, `SESSION_SECRET`, `DEFAULT_OBJECT_STORAGE_BUCKET_ID`, `PRIVATE_OBJECT_DIR`, `PUBLIC_OBJECT_SEARCH_PATHS`
+   - Any M-Pesa / Africa's Talking keys for production features
+3. Click **Deploy** in the top bar and choose **Reserved VM** or **Autoscale**
+4. Replit builds and starts both services automatically using the configured workflows
+5. The app is available at `https://<your-slug>.replit.app`
+
+#### After deploying
+
+- Run DB migrations against the production database:
+  ```bash
+  # In the Replit Shell tab (targets the live DATABASE_URL)
+  pnpm --filter @workspace/db run push
+  ```
+- Optionally seed initial data:
+  ```bash
+  pnpm --filter @workspace/scripts run seed
+  ```
+
+---
+
+### Deploying to a VPS / Dedicated Server (Ubuntu 22.04+)
+
+Use this path if you need full control over infrastructure (AWS EC2, DigitalOcean Droplet, Hetzner, etc.).
+
+#### 1. Provision the server
+
+- Recommended: 2 vCPU / 2 GB RAM minimum
+- Open ports: 80 (HTTP), 443 (HTTPS), 22 (SSH)
+- Install Node 24, pnpm, PostgreSQL, and Nginx:
+
+```bash
+# Node 24
+curl -fsSL https://deb.nodesource.com/setup_24.x | sudo -E bash -
+sudo apt install -y nodejs
+npm i -g pnpm
+
+# PostgreSQL 16
+sudo apt install -y postgresql postgresql-contrib
+sudo -u postgres createuser --pwprompt locumlink
+sudo -u postgres createdb -O locumlink locumlink_prod
+
+# Nginx
+sudo apt install -y nginx certbot python3-certbot-nginx
+```
+
+#### 2. Clone and build
+
+```bash
+git clone https://github.com/JBlizzard-sketch/locumlink-kenya.git /opt/locumlink
+cd /opt/locumlink
+pnpm install
+pnpm run build
+```
+
+#### 3. Set environment variables
+
+Create `/opt/locumlink/.env` with all variables from the reference above, using your production values.
+
+#### 4. Run DB migrations
+
+```bash
+pnpm --filter @workspace/db run push
+pnpm --filter @workspace/scripts run seed
+```
+
+#### 5. Create systemd services
+
+**API server** — `/etc/systemd/system/locumlink-api.service`:
+
+```ini
+[Unit]
+Description=LocumLink API Server
+After=network.target postgresql.service
+
+[Service]
+Type=simple
+User=www-data
+WorkingDirectory=/opt/locumlink/artifacts/api-server
+EnvironmentFile=/opt/locumlink/.env
+Environment=PORT=8080
+Environment=NODE_ENV=production
+ExecStart=/usr/bin/node --enable-source-maps /opt/locumlink/artifacts/api-server/dist/index.mjs
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
+```
+
+**Frontend** — serve the Vite build as static files via Nginx (no Node process needed).
+
+Build the frontend:
+
+```bash
+cd /opt/locumlink
+BASE_URL=/ pnpm --filter @workspace/locumlink run build
+# Output lands in artifacts/locumlink/dist/
+```
+
+#### 6. Configure Nginx
+
+`/etc/nginx/sites-available/locumlink`:
+
+```nginx
+server {
+    listen 80;
+    server_name your-domain.com www.your-domain.com;
+
+    # Frontend (static)
+    root /opt/locumlink/artifacts/locumlink/dist;
+    index index.html;
+
+    location / {
+        try_files $uri $uri/ /index.html;
+    }
+
+    # API proxy — forward /api/* to Express
+    location /api/ {
+        proxy_pass http://127.0.0.1:8080;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_cache_bypass $http_upgrade;
+        # SSE support
+        proxy_buffering off;
+        proxy_read_timeout 86400s;
+    }
+}
+```
+
+Enable and reload:
+
+```bash
+sudo ln -s /etc/nginx/sites-available/locumlink /etc/nginx/sites-enabled/
+sudo nginx -t && sudo systemctl reload nginx
+```
+
+#### 7. TLS with Let's Encrypt
+
+```bash
+sudo certbot --nginx -d your-domain.com -d www.your-domain.com
+```
+
+Certbot auto-renews; add a cron or use the provided systemd timer.
+
+#### 8. Start services
+
+```bash
+sudo systemctl daemon-reload
+sudo systemctl enable --now locumlink-api
+sudo systemctl status locumlink-api
+```
+
+The app is now live at `https://your-domain.com`.
+
+---
+
+### Updating Production
+
+```bash
+cd /opt/locumlink
+git pull origin main
+pnpm install
+pnpm run build
+pnpm --filter @workspace/db run push   # if schema changed
+sudo systemctl restart locumlink-api
+# Frontend: rebuild + Nginx picks up new dist/ automatically (no restart needed)
+BASE_URL=/ pnpm --filter @workspace/locumlink run build
+```
+
+---
+
+### Health Check
+
+The API exposes a health endpoint:
+
+```
+GET /api/health
+→ { "status": "ok", "db": "connected", "uptime": 123.4 }
+```
+
+Use this with your monitoring tool (UptimeRobot, Grafana, etc.) to alert on outages.
+
+## User Preferences
+
+- Push all changes to GitHub after every phase using: `git push "https://JBlizzard-sketch:$GITHUB_PERSONAL_ACCESS_TOKEN@github.com/JBlizzard-sketch/locumlink-kenya.git" main`

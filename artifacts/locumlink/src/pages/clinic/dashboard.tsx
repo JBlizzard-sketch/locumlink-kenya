@@ -1,19 +1,28 @@
-import { useGetMyClinic, useGetClinicAnalytics, useListShifts, useListMyClinicApplications, useListBookings } from "@workspace/api-client-react";
+import { useState } from "react";
+import { useGetMyClinic, useGetClinicAnalytics, useListShifts, useListMyClinicApplications, useListBookings, useCreateShift, useListSpecialties, getListShiftsQueryKey } from "@workspace/api-client-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter,
+} from "@/components/ui/dialog";
 import { Link } from "wouter";
 import {
-  PlusCircle, Users, ActivitySquare, TrendingUp, AlertTriangle,
+  PlusCircle, Users, ActivitySquare, TrendingUp,
   DollarSign, ClipboardList, BriefcaseMedical, Clock, Calendar,
-  ChevronRight, CalendarDays,
+  ChevronRight, CalendarDays, Zap,
 } from "lucide-react";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid,
   Tooltip as RechartsTooltip, ResponsiveContainer,
 } from "recharts";
 import { format, parseISO } from "date-fns";
+import { useQueryClient } from "@tanstack/react-query";
+import { useToast } from "@/hooks/use-toast";
 
 const URGENCY_COLORS: Record<string, string> = {
   normal: "bg-blue-50 text-blue-700 border-blue-200",
@@ -21,7 +30,111 @@ const URGENCY_COLORS: Record<string, string> = {
   emergency: "bg-red-50 text-red-700 border-red-200",
 };
 
+function QuickUrgentShiftDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (v: boolean) => void }) {
+  const today = format(new Date(), "yyyy-MM-dd");
+  const [title, setTitle] = useState("");
+  const [specialtyId, setSpecialtyId] = useState("");
+  const [shiftDate, setShiftDate] = useState(today);
+  const [startTime, setStartTime] = useState("08:00");
+  const [endTime, setEndTime] = useState("14:00");
+  const [rate, setRate] = useState("");
+
+  const { data: specialties } = useListSpecialties();
+  const createShift = useCreateShift();
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!specialtyId || !title || !rate) {
+      toast({ title: "Please fill in all required fields", variant: "destructive" });
+      return;
+    }
+    try {
+      await createShift.mutateAsync({
+        data: {
+          title,
+          specialtyId: parseInt(specialtyId),
+          shiftDate,
+          startTime,
+          endTime,
+          rate: parseInt(rate),
+          urgency: "urgent",
+          positionsAvailable: 1,
+        },
+      });
+      toast({ title: "Urgent shift posted!", description: "Matching locums will be notified." });
+      queryClient.invalidateQueries({ queryKey: getListShiftsQueryKey() });
+      onOpenChange(false);
+      setTitle(""); setSpecialtyId(""); setShiftDate(today); setStartTime("08:00"); setEndTime("14:00"); setRate("");
+    } catch (err: any) {
+      toast({ title: "Failed to post shift", description: err?.data?.error || "Please try again.", variant: "destructive" });
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <Zap className="h-5 w-5 text-amber-500" /> Post Urgent Shift
+          </DialogTitle>
+          <DialogDescription>
+            Fill in the essentials — this shift will be flagged as urgent and prioritised in locum search results.
+          </DialogDescription>
+        </DialogHeader>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="space-y-1.5">
+            <Label htmlFor="qs-title">Shift title *</Label>
+            <Input id="qs-title" value={title} onChange={e => setTitle(e.target.value)} placeholder="e.g. Emergency GP Cover" required />
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="qs-specialty">Specialty *</Label>
+            <Select value={specialtyId} onValueChange={setSpecialtyId} required>
+              <SelectTrigger id="qs-specialty">
+                <SelectValue placeholder="Select specialty" />
+              </SelectTrigger>
+              <SelectContent>
+                {specialties?.data?.map(s => (
+                  <SelectItem key={s.id} value={s.id.toString()}>{s.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="grid grid-cols-3 gap-3">
+            <div className="space-y-1.5">
+              <Label htmlFor="qs-date">Date *</Label>
+              <Input id="qs-date" type="date" value={shiftDate} onChange={e => setShiftDate(e.target.value)} min={today} required />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="qs-start">Start *</Label>
+              <Input id="qs-start" type="time" value={startTime} onChange={e => setStartTime(e.target.value)} required />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="qs-end">End *</Label>
+              <Input id="qs-end" type="time" value={endTime} onChange={e => setEndTime(e.target.value)} required />
+            </div>
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="qs-rate">Rate (KES) *</Label>
+            <Input id="qs-rate" type="number" value={rate} onChange={e => setRate(e.target.value)} placeholder="e.g. 8000" min={1} required />
+          </div>
+          <DialogFooter className="pt-2">
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
+            <Button type="submit" disabled={createShift.isPending} className="gap-1.5">
+              <Zap className="h-4 w-4" />
+              {createShift.isPending ? "Posting…" : "Post Urgent Shift"}
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 export default function ClinicDashboard() {
+  const [urgentOpen, setUrgentOpen] = useState(false);
+
   const { data: clinic, isLoading: clinicLoading } = useGetMyClinic();
   const { data: analytics, isLoading: analyticsLoading } = useGetClinicAnalytics();
   const { data: openShifts, isLoading: shiftsLoading } = useListShifts({ status: "open" } as any);
@@ -45,6 +158,8 @@ export default function ClinicDashboard() {
 
   return (
     <div className="space-y-8 max-w-6xl mx-auto">
+      <QuickUrgentShiftDialog open={urgentOpen} onOpenChange={setUrgentOpen} />
+
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold font-serif tracking-tight">Clinic Dashboard</h1>
@@ -52,11 +167,20 @@ export default function ClinicDashboard() {
             {clinicLoading ? "Loading…" : `Welcome back, ${clinic?.name}`}
           </p>
         </div>
-        <Link href="/clinic/shifts/new">
-          <Button className="gap-2">
-            <PlusCircle className="h-4 w-4" /> Post a Shift
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            className="gap-2 border-amber-300 text-amber-700 hover:bg-amber-50"
+            onClick={() => setUrgentOpen(true)}
+          >
+            <Zap className="h-4 w-4" /> Post Urgent Shift
           </Button>
-        </Link>
+          <Link href="/clinic/shifts/new">
+            <Button className="gap-2">
+              <PlusCircle className="h-4 w-4" /> Post a Shift
+            </Button>
+          </Link>
+        </div>
       </div>
 
       {/* Metric cards */}
@@ -165,6 +289,9 @@ export default function ClinicDashboard() {
             <CardTitle>Quick Actions</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
+            <Button className="w-full justify-start h-11" variant="outline" onClick={() => setUrgentOpen(true)}>
+              <Zap className="h-5 w-5 mr-3 text-amber-500" /> Post urgent shift
+            </Button>
             <Link href="/clinic/shifts/new">
               <Button className="w-full justify-start h-11" variant="outline">
                 <PlusCircle className="h-5 w-5 mr-3 text-primary" /> Create a new shift
