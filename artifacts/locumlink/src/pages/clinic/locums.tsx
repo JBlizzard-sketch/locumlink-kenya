@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useMemo } from "react";
 import { useListLocums, useListSpecialties } from "@workspace/api-client-react";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -7,7 +7,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Search, Star, MapPin, BriefcaseMedical, ShieldCheck, Users, X } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
+import { Search, Star, MapPin, BriefcaseMedical, ShieldCheck, Users, X, Zap, TrendingUp } from "lucide-react";
 import { Link } from "wouter";
 import { useDebounce } from "@/hooks/use-debounce";
 
@@ -18,10 +20,29 @@ const NAIROBI_SUB_COUNTIES = [
   "Kamukunji", "Starehe", "Mathare",
 ];
 
+const EXP_OPTIONS = [
+  { value: "any", label: "Any experience" },
+  { value: "1",   label: "1+ years" },
+  { value: "3",   label: "3+ years" },
+  { value: "5",   label: "5+ years" },
+  { value: "10",  label: "10+ years" },
+];
+
+const SORT_OPTIONS = [
+  { value: "default",    label: "Default" },
+  { value: "exp_desc",   label: "Most experienced" },
+  { value: "rate_asc",   label: "Lowest rate" },
+  { value: "rate_desc",  label: "Highest rate" },
+  { value: "reliability",label: "Most reliable" },
+];
+
 export default function ClinicLocumsDirectory() {
   const [searchInput, setSearchInput] = useState("");
   const [specialtyId, setSpecialtyId] = useState<string>("all");
   const [subCounty, setSubCounty] = useState<string>("all");
+  const [urgentOnly, setUrgentOnly] = useState(false);
+  const [minExp, setMinExp] = useState<string>("any");
+  const [sortBy, setSortBy] = useState<string>("default");
 
   const search = useDebounce(searchInput, 350);
 
@@ -32,14 +53,39 @@ export default function ClinicLocumsDirectory() {
     ...(search ? { search } : {}),
     ...(specialtyId !== "all" ? { specialtyId: Number(specialtyId) } : {}),
     ...(subCounty !== "all" ? { subCounty } : {}),
-  });
+    ...(urgentOnly ? { isAvailableForUrgent: true } : {}),
+    limit: 60,
+  } as any);
 
-  const hasFilters = !!searchInput || specialtyId !== "all" || subCounty !== "all";
+  const processed = useMemo(() => {
+    let list = locumsData?.data ?? [];
+    if (minExp !== "any") {
+      const min = parseInt(minExp);
+      list = list.filter((l) => (l.yearsExperience ?? 0) >= min);
+    }
+    switch (sortBy) {
+      case "exp_desc":
+        return [...list].sort((a, b) => (b.yearsExperience ?? 0) - (a.yearsExperience ?? 0));
+      case "rate_asc":
+        return [...list].sort((a, b) => (a.preferredRatePerShift ?? Infinity) - (b.preferredRatePerShift ?? Infinity));
+      case "rate_desc":
+        return [...list].sort((a, b) => (b.preferredRatePerShift ?? 0) - (a.preferredRatePerShift ?? 0));
+      case "reliability":
+        return [...list].sort((a, b) => parseFloat(b.reliabilityScore ?? "0") - parseFloat(a.reliabilityScore ?? "0"));
+      default:
+        return list;
+    }
+  }, [locumsData, minExp, sortBy]);
+
+  const hasFilters = !!searchInput || specialtyId !== "all" || subCounty !== "all" || urgentOnly || minExp !== "any" || sortBy !== "default";
 
   const clearFilters = useCallback(() => {
     setSearchInput("");
     setSpecialtyId("all");
     setSubCounty("all");
+    setUrgentOnly(false);
+    setMinExp("any");
+    setSortBy("default");
   }, []);
 
   const formatCurrency = (amount: number) =>
@@ -55,13 +101,13 @@ export default function ClinicLocumsDirectory() {
         <h1 className="text-3xl font-bold font-serif tracking-tight">Locum Directory</h1>
         <p className="text-muted-foreground mt-1">
           Browse verified medical professionals available in Nairobi.
-          {locumsData?.total != null && (
-            <span className="ml-2 text-sm font-medium text-foreground">{locumsData.total} found</span>
+          {processed.length > 0 && (
+            <span className="ml-2 text-sm font-medium text-foreground">{processed.length} found</span>
           )}
         </p>
       </div>
 
-      {/* Search & Filters */}
+      {/* Search & Filters row 1 */}
       <div className="flex flex-col sm:flex-row gap-3 p-4 bg-card rounded-lg border shadow-sm">
         <div className="flex-1 relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -73,7 +119,7 @@ export default function ClinicLocumsDirectory() {
           />
         </div>
         <Select value={specialtyId} onValueChange={setSpecialtyId}>
-          <SelectTrigger className="w-full sm:w-[220px]">
+          <SelectTrigger className="w-full sm:w-[200px]">
             <SelectValue placeholder="All Specialties" />
           </SelectTrigger>
           <SelectContent>
@@ -84,7 +130,7 @@ export default function ClinicLocumsDirectory() {
           </SelectContent>
         </Select>
         <Select value={subCounty} onValueChange={setSubCounty}>
-          <SelectTrigger className="w-full sm:w-[180px]">
+          <SelectTrigger className="w-full sm:w-[170px]">
             <SelectValue placeholder="All Sub-counties" />
           </SelectTrigger>
           <SelectContent>
@@ -99,6 +145,46 @@ export default function ClinicLocumsDirectory() {
             <X className="h-4 w-4" />
           </Button>
         )}
+      </div>
+
+      {/* Filter row 2 — experience, sort, urgent toggle */}
+      <div className="flex flex-wrap items-center gap-3">
+        <Select value={minExp} onValueChange={setMinExp}>
+          <SelectTrigger className="w-[160px] h-9">
+            <BriefcaseMedical className="h-3.5 w-3.5 mr-2 text-muted-foreground" />
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {EXP_OPTIONS.map(({ value, label }) => (
+              <SelectItem key={value} value={value}>{label}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
+        <Select value={sortBy} onValueChange={setSortBy}>
+          <SelectTrigger className="w-[180px] h-9">
+            <TrendingUp className="h-3.5 w-3.5 mr-2 text-muted-foreground" />
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {SORT_OPTIONS.map(({ value, label }) => (
+              <SelectItem key={value} value={value}>{label}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
+        <div className="flex items-center gap-2 px-3 py-1.5 rounded-md border bg-card h-9">
+          <Switch
+            id="urgent-filter"
+            checked={urgentOnly}
+            onCheckedChange={setUrgentOnly}
+            className="h-4 w-7 data-[state=checked]:bg-green-600"
+          />
+          <Label htmlFor="urgent-filter" className="text-sm font-medium cursor-pointer flex items-center gap-1.5">
+            <Zap className="h-3.5 w-3.5 text-green-600" />
+            Available for urgent
+          </Label>
+        </div>
       </div>
 
       {/* Active filter pills */}
@@ -123,6 +209,18 @@ export default function ClinicLocumsDirectory() {
               <button onClick={() => setSubCounty("all")} className="ml-1 hover:text-destructive">×</button>
             </Badge>
           )}
+          {minExp !== "any" && (
+            <Badge variant="secondary" className="gap-1.5 pl-2">
+              <BriefcaseMedical className="h-3 w-3" /> {minExp}+ yrs exp
+              <button onClick={() => setMinExp("any")} className="ml-1 hover:text-destructive">×</button>
+            </Badge>
+          )}
+          {urgentOnly && (
+            <Badge variant="secondary" className="gap-1.5 pl-2 text-green-700 bg-green-50 border-green-200">
+              <Zap className="h-3 w-3" /> Available for urgent
+              <button onClick={() => setUrgentOnly(false)} className="ml-1 hover:text-destructive">×</button>
+            </Badge>
+          )}
         </div>
       )}
 
@@ -144,7 +242,7 @@ export default function ClinicLocumsDirectory() {
             </Card>
           ))}
         </div>
-      ) : locumsData?.data?.length === 0 ? (
+      ) : processed.length === 0 ? (
         <div className="text-center py-20 bg-card rounded-xl border border-dashed">
           <Users className="h-12 w-12 text-muted-foreground mx-auto mb-4 opacity-50" />
           <h3 className="text-xl font-medium text-foreground">No locums found</h3>
@@ -157,7 +255,7 @@ export default function ClinicLocumsDirectory() {
         </div>
       ) : (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {locumsData?.data?.map((locum) => (
+          {processed.map((locum) => (
             <Card key={locum.id} className="flex flex-col hover:shadow-md transition-shadow group">
               <CardContent className="p-6 flex-1 space-y-4">
                 <div className="flex justify-between items-start">
@@ -168,8 +266,8 @@ export default function ClinicLocumsDirectory() {
                     </AvatarFallback>
                   </Avatar>
                   {locum.isAvailableForUrgent && (
-                    <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 text-xs">
-                      Available Now
+                    <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 text-xs gap-1">
+                      <Zap className="h-3 w-3" /> Available Now
                     </Badge>
                   )}
                 </div>
@@ -186,7 +284,7 @@ export default function ClinicLocumsDirectory() {
                   <div className="flex items-center gap-1.5">
                     <Star className="h-4 w-4 fill-accent text-accent" />
                     <span className="font-medium text-foreground">
-                      {locum.reliabilityScore ? `${locum.reliabilityScore}%` : "New"}
+                      {locum.reliabilityScore ? `${parseFloat(locum.reliabilityScore).toFixed(0)}%` : "New"}
                     </span>
                   </div>
                   <div className="flex items-center gap-1.5">

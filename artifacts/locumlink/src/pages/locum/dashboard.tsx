@@ -4,15 +4,21 @@ import {
   useListMatchedShifts,
   useGetMyLocum,
 } from "@workspace/api-client-react";
+import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
-import { ArrowRight, Calendar, Clock, DollarSign, Star, AlertCircle, User, FileText, Zap, CheckCircle2, ChevronRight } from "lucide-react";
+import {
+  ArrowRight, Calendar, Clock, DollarSign, Star, AlertCircle,
+  User, FileText, Zap, CheckCircle2, ChevronRight, Bell, MapPin,
+} from "lucide-react";
 import { Link } from "wouter";
 import { format, parseISO } from "date-fns";
 import { useMemo } from "react";
+
+const BASE_URL = import.meta.env.BASE_URL as string;
 
 const WEIGHTS = [10, 15, 15, 10, 5, 10, 5, 10, 10, 5, 5];
 
@@ -46,6 +52,22 @@ function useProfileCompleteness() {
   return { score, missing, isLoading, hasProfile: !!profile };
 }
 
+function useShiftInvitations() {
+  const token = localStorage.getItem("token");
+  return useQuery<{ data: any[]; total: number }>({
+    queryKey: ["shift-invitations"],
+    queryFn: async () => {
+      const res = await fetch(`${BASE_URL}api/shifts/my-invitations`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
+      if (!res.ok) throw new Error("Failed");
+      return res.json() as Promise<{ data: any[]; total: number }>;
+    },
+    refetchInterval: 60_000,
+    staleTime: 30_000,
+  });
+}
+
 function strengthLabel(score: number) {
   if (score >= 90) return { text: "Complete",      color: "text-green-700", bg: "bg-green-50 border-green-200",  bar: "bg-green-500"  };
   if (score >= 65) return { text: "Strong",         color: "text-blue-700",  bg: "bg-blue-50 border-blue-200",   bar: "bg-blue-500"   };
@@ -53,14 +75,19 @@ function strengthLabel(score: number) {
   return               { text: "Just started",   color: "text-rose-700",  bg: "bg-rose-50 border-rose-200",   bar: "bg-rose-500"   };
 }
 
+const formatKes = (n: number) =>
+  new Intl.NumberFormat("en-KE", { style: "currency", currency: "KES", maximumFractionDigits: 0 }).format(n);
+
 export default function LocumDashboard() {
   const { data: analytics, isLoading: analyticsLoading } = useGetLocumAnalytics();
   const { data: upcomingShifts, isLoading: upcomingLoading } = useListUpcomingShifts();
   const { data: matchedShifts, isLoading: matchedLoading } = useListMatchedShifts();
   const { score, missing, isLoading: profileLoading } = useProfileCompleteness();
+  const { data: invitationsData, isLoading: invitesLoading } = useShiftInvitations();
 
   const strength = strengthLabel(score);
   const showCompletenessCard = !profileLoading && score < 90;
+  const pendingInvites = invitationsData?.data ?? [];
 
   const formatCurrency = (amount: number) =>
     new Intl.NumberFormat("en-KE", { style: "currency", currency: "KES", maximumFractionDigits: 0 }).format(amount);
@@ -72,14 +99,13 @@ export default function LocumDashboard() {
         <p className="text-muted-foreground mt-1">Overview of your shifts, earnings, and performance.</p>
       </div>
 
-      {/* Profile completeness banner — only shown when profile is incomplete */}
+      {/* Profile completeness banner */}
       {profileLoading ? (
         <Skeleton className="h-[88px] w-full rounded-xl" />
       ) : showCompletenessCard ? (
         <Card className={`border ${strength.bg}`}>
           <CardContent className="p-5">
             <div className="flex flex-col sm:flex-row sm:items-center gap-4">
-              {/* Score ring + label */}
               <div className="flex items-center gap-4 flex-1">
                 <div className="relative h-14 w-14 shrink-0">
                   <svg className="h-14 w-14 -rotate-90" viewBox="0 0 56 56">
@@ -104,7 +130,6 @@ export default function LocumDashboard() {
                   <p className="text-xs text-muted-foreground mb-2">
                     A complete profile gets you <strong>3× more shift matches</strong>. {missing.length} item{missing.length !== 1 ? "s" : ""} remaining.
                   </p>
-                  {/* Top 3 missing items */}
                   <div className="flex flex-wrap gap-1.5">
                     {missing.slice(0, 3).map((item) => (
                       <Link key={item.label} href={item.href}>
@@ -125,7 +150,6 @@ export default function LocumDashboard() {
                   </div>
                 </div>
               </div>
-              {/* CTA */}
               <Link href="/locum/profile">
                 <Button size="sm" variant="outline" className={`gap-1.5 shrink-0 ${strength.color} border-current hover:bg-background`}>
                   Complete Profile <ChevronRight className="h-3.5 w-3.5" />
@@ -140,6 +164,78 @@ export default function LocumDashboard() {
           <span className="text-sm font-medium">Your profile is complete — you're fully set up for shift matching!</span>
         </div>
       ) : null}
+
+      {/* Shift Invitations */}
+      {(invitesLoading || pendingInvites.length > 0) && (
+        <Card className="border-primary/20 bg-primary/5">
+          <CardHeader className="flex flex-row items-center justify-between pb-3">
+            <div className="flex items-center gap-2">
+              <Bell className="h-5 w-5 text-primary" />
+              <CardTitle className="text-base">Shift Invitations</CardTitle>
+              {pendingInvites.length > 0 && (
+                <Badge className="text-xs px-1.5 h-5">{pendingInvites.length}</Badge>
+              )}
+            </div>
+            <Link href="/locum/notifications">
+              <Button variant="ghost" size="sm" className="text-xs text-muted-foreground h-7">
+                View all notifications
+              </Button>
+            </Link>
+          </CardHeader>
+          <CardContent className="pt-0">
+            {invitesLoading ? (
+              <div className="space-y-3">
+                <Skeleton className="h-16 w-full rounded-lg" />
+                <Skeleton className="h-16 w-full rounded-lg" />
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {pendingInvites.map((shift: any) => (
+                  <div
+                    key={shift.id}
+                    className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 rounded-lg bg-background border hover:border-primary/40 transition-colors"
+                  >
+                    <div className="flex items-start gap-3 min-w-0">
+                      <div className="bg-primary/10 text-primary p-2 rounded-lg text-center shrink-0 min-w-[52px]">
+                        <div className="text-[10px] font-bold uppercase leading-tight">
+                          {format(parseISO(shift.shiftDate), "MMM")}
+                        </div>
+                        <div className="text-lg font-black leading-tight">
+                          {format(parseISO(shift.shiftDate), "dd")}
+                        </div>
+                      </div>
+                      <div className="min-w-0">
+                        <p className="font-semibold text-sm truncate">{shift.title}</p>
+                        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground mt-0.5">
+                          <span className="font-medium text-foreground">{shift.clinic?.name}</span>
+                          <span className="flex items-center gap-1">
+                            <Clock className="h-3 w-3" />
+                            {shift.startTime} – {shift.endTime}
+                          </span>
+                          {shift.subCounty && (
+                            <span className="flex items-center gap-1">
+                              <MapPin className="h-3 w-3" />
+                              {shift.subCounty}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <span className="font-bold text-sm text-primary">{formatKes(shift.rate)}</span>
+                      <Link href={`/locum/shifts/${shift.id}`}>
+                        <Button size="sm" className="gap-1.5 h-8">
+                          View & Apply <ArrowRight className="h-3.5 w-3.5" />
+                        </Button>
+                      </Link>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       {/* Top Metrics */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">

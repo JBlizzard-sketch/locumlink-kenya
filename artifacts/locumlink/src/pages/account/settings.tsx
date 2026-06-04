@@ -1,19 +1,25 @@
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useChangePassword, useGetMe } from "@workspace/api-client-react";
+import {
+  useChangePassword, useGetMe,
+  useGetNotificationPreferences, useUpdateNotificationPreferences,
+  getGetNotificationPreferencesQueryKey,
+} from "@workspace/api-client-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+import { Switch } from "@/components/ui/switch";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { useToast } from "@/hooks/use-toast";
-import { Shield, Mail, Phone, Calendar, KeyRound, CheckCircle2, Eye, EyeOff, User } from "lucide-react";
+import { Shield, Mail, Phone, Calendar, KeyRound, CheckCircle2, Eye, EyeOff, User, Bell, Loader2 } from "lucide-react";
 import { useState } from "react";
 import { format } from "date-fns";
 import { Link } from "wouter";
+import { useQueryClient } from "@tanstack/react-query";
 
 const passwordSchema = z
   .object({
@@ -43,6 +49,106 @@ function profileLink(role?: string) {
   if (role === "locum") return { href: "/locum/profile", label: "Edit Locum Profile" };
   if (role === "clinic_admin" || role === "clinic_hr") return { href: "/clinic/profile", label: "Edit Clinic Profile" };
   return null;
+}
+
+const EVENT_PREFS: { key: string; label: string; desc: string }[] = [
+  { key: "newShiftMatch",       label: "New shift matches",        desc: "When a new shift matches your profile" },
+  { key: "applicationUpdate",   label: "Application updates",      desc: "When a clinic shortlists, confirms or rejects you" },
+  { key: "bookingConfirmation", label: "Booking confirmations",    desc: "When a booking is created or updated" },
+  { key: "paymentUpdate",       label: "Payment updates",          desc: "When a payment is released to your M-Pesa" },
+  { key: "shiftReminder",       label: "Shift reminders",          desc: "Reminders before an upcoming shift" },
+  { key: "ratingReceived",      label: "Ratings received",         desc: "When a clinic leaves you a rating" },
+  { key: "credentialExpiry",    label: "Credential expiry alerts", desc: "When a document is about to expire" },
+];
+
+function NotificationPreferencesCard() {
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const { data: prefs, isLoading } = useGetNotificationPreferences({
+    query: { queryKey: getGetNotificationPreferencesQueryKey() },
+  });
+  const updatePrefs = useUpdateNotificationPreferences();
+
+  const toggle = async (key: string, value: boolean) => {
+    try {
+      await updatePrefs.mutateAsync({ data: { [key]: value } as any });
+      queryClient.invalidateQueries({ queryKey: getGetNotificationPreferencesQueryKey() });
+    } catch {
+      toast({ title: "Failed to update preference", variant: "destructive" });
+    }
+  };
+
+  return (
+    <Card>
+      <CardHeader className="pb-3">
+        <CardTitle className="flex items-center gap-2 text-base">
+          <Bell className="h-4 w-4 text-primary" />
+          Notification Preferences
+        </CardTitle>
+        <CardDescription>
+          Choose which events you want to be notified about and how.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-5">
+        {isLoading ? (
+          <div className="flex items-center gap-2 text-muted-foreground py-4">
+            <Loader2 className="h-4 w-4 animate-spin" />
+            <span className="text-sm">Loading preferences…</span>
+          </div>
+        ) : (
+          <>
+            {/* Event toggles */}
+            <div className="space-y-3">
+              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Events</p>
+              {EVENT_PREFS.map(({ key, label, desc }) => {
+                const checked = prefs == null ? true : Boolean((prefs as any)[key]);
+                return (
+                  <div key={key} className="flex items-center justify-between gap-4">
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium">{label}</p>
+                      <p className="text-xs text-muted-foreground">{desc}</p>
+                    </div>
+                    <Switch
+                      checked={checked}
+                      onCheckedChange={(v) => toggle(key, v)}
+                      disabled={updatePrefs.isPending}
+                    />
+                  </div>
+                );
+              })}
+            </div>
+
+            <Separator />
+
+            {/* Channel toggles */}
+            <div className="space-y-3">
+              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Delivery Channels</p>
+              {[
+                { key: "preferSms",      label: "SMS",       desc: "Receive notifications via text message" },
+                { key: "preferWhatsapp", label: "WhatsApp",  desc: "Receive notifications via WhatsApp" },
+                { key: "preferEmail",    label: "Email",     desc: "Receive notifications via email" },
+              ].map(({ key, label, desc }) => {
+                const checked = prefs == null ? false : Boolean((prefs as any)[key]);
+                return (
+                  <div key={key} className="flex items-center justify-between gap-4">
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium">{label}</p>
+                      <p className="text-xs text-muted-foreground">{desc}</p>
+                    </div>
+                    <Switch
+                      checked={checked}
+                      onCheckedChange={(v) => toggle(key, v)}
+                      disabled={updatePrefs.isPending}
+                    />
+                  </div>
+                );
+              })}
+            </div>
+          </>
+        )}
+      </CardContent>
+    </Card>
+  );
 }
 
 export default function AccountSettings() {
@@ -168,6 +274,9 @@ export default function AccountSettings() {
         </CardContent>
       </Card>
 
+      {/* Notification Preferences */}
+      <NotificationPreferencesCard />
+
       {/* Change Password */}
       <Card>
         <CardHeader className="pb-3">
@@ -288,7 +397,7 @@ export default function AccountSettings() {
         </CardContent>
       </Card>
 
-      {/* Quick Links */}
+      {/* Password Recovery */}
       <Card>
         <CardHeader className="pb-3">
           <CardTitle className="text-base">Password Recovery</CardTitle>
