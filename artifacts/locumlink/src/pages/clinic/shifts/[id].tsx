@@ -112,8 +112,8 @@ export default function ClinicShiftDetail() {
   const displayed = useMemo(() => {
     const filtered = tab === "all" ? allApps : allApps.filter((a) => a.status === tab);
     return [...filtered].sort((a, b) => {
-      if (sort === "match") return (b.matchScore ?? 0) - (a.matchScore ?? 0);
-      if (sort === "exp")   return (b.locum?.yearsExperience ?? 0) - (a.locum?.yearsExperience ?? 0);
+      if (sort === "match") return Number(b.matchScore ?? 0) - Number(a.matchScore ?? 0);
+      if (sort === "exp")   return Number(b.locum?.yearsExperience ?? 0) - Number(a.locum?.yearsExperience ?? 0);
       return 0; // date — keep server order
     });
   }, [allApps, tab, sort]);
@@ -346,7 +346,9 @@ export default function ClinicShiftDetail() {
                               {app.locum?.firstName} {app.locum?.lastName}
                             </span>
                             {app.locum?.verificationStatus === "verified" && (
-                              <ShieldCheck className="h-4 w-4 text-primary shrink-0" title="Verified" />
+                              <span title="Verified">
+                                <ShieldCheck className="h-4 w-4 text-primary shrink-0" />
+                              </span>
                             )}
                             <Badge
                               variant="outline"
@@ -379,7 +381,7 @@ export default function ClinicShiftDetail() {
                           {app.matchScore != null && (
                             <div className="flex items-center gap-2 text-xs text-muted-foreground">
                               <span className="shrink-0">Match</span>
-                              <MatchBar score={app.matchScore} />
+                              <MatchBar score={Number(app.matchScore)} />
                             </div>
                           )}
 
