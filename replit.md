@@ -339,6 +339,178 @@ The app is now live at `https://your-domain.com`.
 
 ---
 
+### Deploying to Railway ⭐ (Recommended cloud platform)
+
+Railway is the best cloud fit for this stack: it runs full Node.js processes (not serverless), has a first-class managed PostgreSQL service, and SSE (Server-Sent Events) works out of the box. Monorepo support is built-in.
+
+#### 1. Prerequisites
+
+- [Railway account](https://railway.app) (free tier available)
+- Railway CLI: `npm i -g @railway/cli && railway login`
+
+#### 2. Create a project
+
+```bash
+# From the repo root
+railway init          # creates a new Railway project linked to this directory
+```
+
+Or create via the Railway dashboard → New Project → Deploy from GitHub repo.
+
+#### 3. Add a PostgreSQL service
+
+In the Railway dashboard: **New Service → Database → PostgreSQL**.  
+Railway injects `DATABASE_URL` automatically into all services in the same project.
+
+#### 4. Configure services
+
+LocumLink needs **two services** in Railway — one for the API, one to serve the built frontend.
+
+**Service 1 — API server**
+
+In the Railway dashboard, add a service pointing to this repo. Then:
+
+- **Root directory**: `artifacts/api-server`
+- **Build command**: `cd /app && pnpm install && pnpm run build`
+- **Start command**: `node --enable-source-maps dist/index.mjs`
+- **Port**: Railway auto-detects from `$PORT`
+
+**Service 2 — Frontend (static)**
+
+Railway can serve a static Vite build via [Static Site](https://docs.railway.app/deploy/static-sites):
+
+- **Root directory**: `artifacts/locumlink`
+- **Build command**: `cd /app && pnpm install && BASE_URL=/ pnpm run build`
+- **Output directory**: `dist`
+
+#### 5. Set environment variables
+
+In each service's **Variables** tab, add:
+
+```
+SESSION_SECRET=...
+DEFAULT_OBJECT_STORAGE_BUCKET_ID=...
+PRIVATE_OBJECT_DIR=private
+PUBLIC_OBJECT_SEARCH_PATHS=public
+MPESA_CONSUMER_KEY=...
+MPESA_CONSUMER_SECRET=...
+MPESA_SHORTCODE=...
+MPESA_PASSKEY=...
+MPESA_ENVIRONMENT=production
+AT_USERNAME=...
+AT_API_KEY=...
+NODE_ENV=production
+```
+
+`DATABASE_URL` is injected automatically from the PostgreSQL service.
+
+#### 6. Run DB migrations
+
+```bash
+# In the Railway shell (Dashboard → Service → Shell tab)
+pnpm --filter @workspace/db run push
+pnpm --filter @workspace/scripts run seed   # optional
+```
+
+#### 7. Deploy
+
+Railway auto-deploys on every push to your linked GitHub branch. To trigger manually:
+
+```bash
+railway up
+```
+
+The API will be available at `https://<service>.up.railway.app`.
+
+---
+
+### Deploying to Render
+
+Render is a solid alternative to Railway with a generous free tier and similar long-running process support (SSE works).
+
+#### 1. Prerequisites
+
+- [Render account](https://render.com)
+- Connect your GitHub repo under **Dashboard → New → Connect a repository**
+
+#### 2. Create a PostgreSQL database
+
+Dashboard → **New → PostgreSQL** → note the **Internal Database URL** (used as `DATABASE_URL`).
+
+#### 3. Create a Web Service — API server
+
+- **Name**: `locumlink-api`
+- **Root directory**: `artifacts/api-server`
+- **Runtime**: Node
+- **Build command**: `cd /workspace && pnpm install && pnpm run build`
+- **Start command**: `node --enable-source-maps dist/index.mjs`
+- **Instance type**: Starter ($7/mo) or Free (sleeps after 15 min of inactivity)
+
+#### 4. Create a Static Site — Frontend
+
+- **Name**: `locumlink-web`
+- **Root directory**: `artifacts/locumlink`
+- **Build command**: `cd /workspace && pnpm install && BASE_URL=/ pnpm run build`
+- **Publish directory**: `dist`
+- **Rewrite rule**: `/*` → `/index.html` (for SPA routing)
+
+#### 5. Environment variables
+
+In the API Web Service → **Environment**, add the same variables listed in the Railway section above. Set `DATABASE_URL` to the **Internal Database URL** from step 2.
+
+#### 6. Run DB migrations
+
+Use the Render dashboard **Shell** tab on the API service:
+
+```bash
+pnpm --filter @workspace/db run push
+```
+
+#### 7. Custom domain & TLS
+
+Dashboard → your service → **Settings → Custom Domains** → add your domain. Render provisions Let's Encrypt TLS automatically.
+
+---
+
+### Deploying to Vercel — Frontend only ⚠️
+
+> **Important**: Vercel's serverless (Edge / Lambda) model does **not** support long-lived HTTP connections. LocumLink's real-time notification system uses **Server-Sent Events (SSE)**, which require a persistent connection. The Express API **cannot run on Vercel**.
+>
+> Use Vercel for the **frontend only**, and host the API on Railway, Render, or a VPS.
+
+#### Frontend on Vercel + API elsewhere
+
+1. **Deploy the API** to Railway or Render (see above). Note its public URL (e.g. `https://locumlink-api.up.railway.app`).
+
+2. **Deploy the frontend** to Vercel:
+
+   ```bash
+   npm i -g vercel
+   vercel --cwd artifacts/locumlink
+   ```
+
+   Or connect the GitHub repo via the Vercel dashboard.
+
+3. **Configure Vite** to proxy API calls to your hosted API in production by setting a Vercel environment variable:
+
+   ```
+   VITE_API_BASE_URL=https://locumlink-api.up.railway.app
+   ```
+
+   Then update `artifacts/locumlink/vite.config.ts` to use the env var for the dev proxy, and prefix all API fetch calls with `import.meta.env.VITE_API_BASE_URL` (or leave them relative if a Vite proxy handles it in dev).
+
+4. Add a `vercel.json` in `artifacts/locumlink/` for SPA routing:
+
+   ```json
+   {
+     "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }]
+   }
+   ```
+
+5. Set `VITE_API_BASE_URL` in the Vercel dashboard → Project → Settings → Environment Variables.
+
+---
+
 ### Updating Production
 
 ```bash
